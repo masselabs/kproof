@@ -1,0 +1,6 @@
+{
+  "name": "kproof",
+  "private": true,
+  "description": "KProof monorepo: the SDK services use and the demo page. The mobile app (app/) keeps its own dependencies.",
+  "workspaces": ["sdk", "demo"]
+}

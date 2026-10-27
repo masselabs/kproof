@@ -25,7 +25,7 @@ circuit lands in the app, the SDK and the circuits in a single commit.
 
 ```
 app/        KProof mobile app (iOS, Android): reads the mobile ID and proves on the device
-sdk/        SDK for services: create a proof request and verify the answer
+sdk/        SDK for services: create a proof request and verify the answer (exists)
 circuits/   Noir circuits for Korea Mobile ID proofs
 demo/       Demo page: creates a proof request and waits for the answer (exists)
 ```

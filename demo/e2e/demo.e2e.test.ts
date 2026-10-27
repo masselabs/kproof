@@ -11,8 +11,8 @@
  * end to end on the real relay.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { RelayClient, type RequestStatus } from '../src/relay';
-import { CIRCUITS, type CircuitId } from '../src/requests';
+import { readFileSync } from 'node:fs';
+import { RelayClient, buildInputs, verifyAnswer, type CircuitId, type RequestStatus } from '@kproof/sdk';
 
 function required(name: string): string {
   const value = process.env[name];
@@ -24,6 +24,7 @@ const API = required('KPROOF_E2E_API_URL');
 const DEMO = required('KPROOF_E2E_DEMO_URL');
 const client = new RelayClient({ apiUrl: API, pollIntervalMs: 1000 });
 const values = { scope: `kproof-demo-e2e:${Date.now()}`, ageThreshold: '19', targetRegion: '전북특별자치도' };
+const CIRCUIT_IDS: CircuitId[] = ['mdl_kr_ownership', 'mdl_kr_age', 'mdl_kr_region'];
 
 function decodeDeepLink(deepLink: string): Record<string, unknown> {
   const url = new URL(deepLink);
@@ -70,7 +71,7 @@ describe('served page', () => {
   it('sends a content security policy that only lets the page talk to its relay', () => {
     const csp = headers.get('content-security-policy') ?? '';
     expect(csp).toContain("default-src 'self'");
-    expect(csp).toContain(`connect-src 'self' ${API} ${API.replace(/^http/, 'ws')}`);
+    expect(csp).toContain(`connect-src 'self' ${API} ${API.replace(/^http/, 'ws')} https://sepolia.base.org;`);
     expect(headers.get('x-content-type-options')).toBe('nosniff');
   });
 
@@ -87,8 +88,8 @@ describe('request -> app answer -> page update, on the real relay', () => {
   const stops: Array<() => void> = [];
   afterAll(() => stops.forEach((stop) => stop()));
 
-  it.each(Object.keys(CIRCUITS) as CircuitId[])('%s: the deep link carries exactly the request the page built', async (id) => {
-    const inputs = CIRCUITS[id].buildInputs(values);
+  it.each(CIRCUIT_IDS)('%s: the deep link carries exactly the request the page built', async (id) => {
+    const inputs = buildInputs(id, values);
     const created = await client.createRequest(id, inputs, 'KProof 데모');
     const request = decodeDeepLink(created.deepLink);
     expect(request).toMatchObject({ requestId: created.requestId, circuitId: id, inputs, scope: values.scope, dappName: 'KProof 데모' });
@@ -97,7 +98,7 @@ describe('request -> app answer -> page update, on the real relay', () => {
   });
 
   it('the page sees generating, then the app\'s terminal answer, over the socket or the poll', async () => {
-    const created = await client.createRequest('mdl_kr_age', CIRCUITS.mdl_kr_age.buildInputs(values), 'KProof 데모');
+    const created = await client.createRequest('mdl_kr_age', buildInputs('mdl_kr_age', values), 'KProof 데모');
     const seen: RequestStatus[] = [];
     const done = new Promise<RequestStatus>((resolve, reject) => {
       stops.push(client.watch(created.requestId, (s) => {
@@ -117,11 +118,33 @@ describe('request -> app answer -> page update, on the real relay', () => {
   });
 
   it('a hostile error message from the app reaches the page as plain data', async () => {
-    const created = await client.createRequest('mdl_kr_ownership', CIRCUITS.mdl_kr_ownership.buildInputs(values), 'KProof 데모');
+    const created = await client.createRequest('mdl_kr_ownership', buildInputs('mdl_kr_ownership', values), 'KProof 데모');
     const hostile = '<img src=x onerror=alert(1)> 실패 😀';
     expect((await appAnswers(created.requestId, { status: 'error', errorCode: 'E2007', error: hostile })).status).toBe(200);
     const status = await client.getStatus(created.requestId);
     expect(status).toMatchObject({ status: 'error', errorCode: 'E2007', error: hostile });
+  });
+
+  it('a completed answer carrying a REAL proof is verified by the SDK on Base Sepolia', async () => {
+    // The age fixture proof (sdk/fixtures/mdl_age) was made for age 41 with a
+    // scope string we do not have, so every check passes except the scope:
+    // relay -> page -> SDK -> chain runs end to end on real services.
+    const dir = new URL('../../sdk/fixtures/mdl_age/', import.meta.url);
+    const proof = '0x' + readFileSync(new URL('proof', dir)).toString('hex');
+    const raw = readFileSync(new URL('public_inputs', dir));
+    const publicInputs: string[] = [];
+    for (let i = 0; i < raw.length; i += 32) publicInputs.push('0x' + raw.subarray(i, i + 32).toString('hex'));
+
+    const inputs = buildInputs('mdl_kr_age', { scope: values.scope, ageThreshold: 41 });
+    const created = await client.createRequest('mdl_kr_age', inputs, 'KProof 데모');
+    expect((await appAnswers(created.requestId, { status: 'completed', circuit: 'mdl_kr_age', proof, publicInputs })).status).toBe(200);
+    const answer = await client.getStatus(created.requestId);
+    expect(answer).toMatchObject({ status: 'completed', circuit: 'mdl_kr_age', proof, publicInputs });
+
+    const outcome = await verifyAnswer({ circuitId: 'mdl_kr_age', inputs }, answer, { environment: 'staging' });
+    expect(outcome.valid).toBe(false);
+    expect(outcome.checks.filter((c) => !c.ok).map((c) => c.name)).toEqual(['scope']);
+    expect(outcome.checks.find((c) => c.name === 'on_chain')).toMatchObject({ ok: true });
   });
 
   it('the relay refuses a circuit the demo does not offer', async () => {
@@ -129,7 +152,7 @@ describe('request -> app answer -> page update, on the real relay', () => {
   });
 
   it('the relay refuses a completed answer with no proof', async () => {
-    const created = await client.createRequest('mdl_kr_region', CIRCUITS.mdl_kr_region.buildInputs(values), 'KProof 데모');
+    const created = await client.createRequest('mdl_kr_region', buildInputs('mdl_kr_region', values), 'KProof 데모');
     const res = await appAnswers(created.requestId, { status: 'completed' });
     expect(res.status).toBe(400);
     expect((await client.getStatus(created.requestId)).status).toBe('pending');

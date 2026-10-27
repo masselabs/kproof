@@ -1,9 +1,11 @@
 /**
- * Turns relay statuses into the words the page shows. Every string from the
- * server is placed with textContent, never innerHTML: an `error` field is
- * whatever the app or relay wrote, and must not become markup.
+ * Turns relay statuses and SDK verification outcomes into the words the page
+ * shows. Every string from the server is placed with textContent, never
+ * innerHTML: an `error` field is whatever the app or relay wrote, and must not
+ * become markup.
  */
-import type { RequestStatus } from './relay';
+import type { RequestStatus, VerifyOutcome } from '@kproof/sdk';
+import { checkLabel } from './messages';
 
 export const STATUS_TEXT: Readonly<Record<RequestStatus['status'], string>> = {
   pending: '앱이 요청을 열기를 기다리는 중입니다.',
@@ -20,35 +22,46 @@ export function statusText(s: RequestStatus): string {
   return text;
 }
 
-/** Builds the result block for a terminal status. */
-export function renderResult(doc: Document, s: RequestStatus): HTMLElement {
+function rows(doc: Document, entries: Array<[string, string]>): HTMLElement {
+  const dl = doc.createElement('dl');
+  dl.className = 'meta';
+  for (const [k, v] of entries) {
+    const dt = doc.createElement('dt');
+    dt.textContent = k;
+    const dd = doc.createElement('dd');
+    dd.textContent = v;
+    dl.append(dt, dd);
+  }
+  return dl;
+}
+
+/** Builds the result block for a terminal status, with the verification when there is one. */
+export function renderResult(doc: Document, s: RequestStatus, outcome?: VerifyOutcome): HTMLElement {
   const box = doc.createElement('div');
-  box.className = `result result-${s.status}`;
+  const verdict = s.status === 'completed' ? (outcome ? (outcome.valid ? 'verified' : 'refused') : 'checking') : s.status;
+  box.className = `result result-${verdict}`;
   const title = doc.createElement('p');
   title.className = 'result-title';
-  title.textContent = statusText(s);
+  title.textContent = s.status !== 'completed'
+    ? statusText(s)
+    : outcome === undefined ? '증명이 도착했습니다. 검증하는 중입니다.'
+    : outcome.valid ? '증명을 검증했습니다.' : '증명을 받아들일 수 없습니다.';
   box.append(title);
 
-  const rows: Array<[string, string]> = [];
   if (s.status === 'completed') {
-    rows.push(['회로', s.circuit ?? '(응답에 없음)']);
-    rows.push(['증명 크기', s.proof ? `${Math.floor((s.proof.replace(/^0x/, '').length) / 2).toLocaleString('ko-KR')}바이트` : '(응답에 없음)']);
-    rows.push(['공개 입력', s.publicInputs ? `${s.publicInputs.length}개` : '(응답에 없음)']);
-    rows.push(['검증', '아직 하지 않음 — KProof SDK의 검증 기능이 생기면 여기서 확인합니다.']);
-  } else if (s.error || s.errorCode) {
-    rows.push(['사유', [s.errorCode, s.error].filter(Boolean).join(' ')]);
-  }
-  if (rows.length > 0) {
-    const dl = doc.createElement('dl');
-    dl.className = 'meta';
-    for (const [k, v] of rows) {
-      const dt = doc.createElement('dt');
-      dt.textContent = k;
-      const dd = doc.createElement('dd');
-      dd.textContent = v;
-      dl.append(dt, dd);
+    const entries: Array<[string, string]> = [
+      ['회로', s.circuit ?? '(응답에 없음)'],
+      ['증명 크기', s.proof ? `${Math.floor(s.proof.replace(/^0x/, '').length / 2).toLocaleString('ko-KR')}바이트` : '(응답에 없음)'],
+      ['공개 입력', s.publicInputs ? `${s.publicInputs.length}개` : '(응답에 없음)'],
+    ];
+    if (outcome) {
+      for (const c of outcome.checks) entries.push([checkLabel(c.name), `${c.ok ? '통과' : '실패'} · ${c.detail}`]);
+      if (outcome.nullifier) entries.push(['중복 확인 값', outcome.nullifier]);
+      entries.push(['정부 서명', '아직 검증하지 않음 (조폐공사 규격 연동 전)']);
     }
-    box.append(dl);
+    box.append(rows(doc, entries));
+  } else if (s.error || s.errorCode) {
+    box.append(rows(doc, [['사유', [s.errorCode, s.error].filter(Boolean).join(' ')]]));
   }
   return box;
 }

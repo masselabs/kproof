@@ -27,11 +27,11 @@ esac
 
 if [ -z "${KPROOF_E2E_DEMO_URL:-}" ]; then
   IMAGE="kproof-demo:e2e"
-  "${DOCKER[@]}" build --target runtime \
-    --build-arg NODE_VERSION="$(tr -d '[:space:]' < "$DEMO_DIR/.nvmrc")" \
+  "${DOCKER[@]}" build --target runtime -f "$DEMO_DIR/Dockerfile" \
+    --build-arg NODE_VERSION="$(tr -d '[:space:]' < "$DEMO_DIR/../.nvmrc")" \
     --build-arg VITE_KPROOF_API_URL="$API_URL" \
     --build-arg VITE_KPROOF_ENV="$ENVIRONMENT" \
-    -t "$IMAGE" "$DEMO_DIR"
+    -t "$IMAGE" "$DEMO_DIR/.."
   CONTAINER="$("${DOCKER[@]}" run -d --rm -p 127.0.0.1::8080 "$IMAGE")"
   trap '"${DOCKER[@]}" stop "$CONTAINER" >/dev/null 2>&1 || true' EXIT
   PORT="$("${DOCKER[@]}" port "$CONTAINER" 8080/tcp | head -1 | sed 's/.*://')"

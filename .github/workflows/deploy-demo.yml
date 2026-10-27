@@ -76,21 +76,24 @@ jobs:
             echo "SERVICE=kproof-demo-${DEPLOY_ENV}"
             echo "API_URL=${API_URL}"
             echo "PAGE_URL=${PAGE_URL}"
-            echo "NODE_VERSION=$(tr -d '[:space:]' < .nvmrc)"
+            echo "NODE_VERSION=$(tr -d '[:space:]' < ../.nvmrc)"
             echo "IMAGE=${REGISTRY}/kproof-demo:${DEPLOY_ENV}-${GITHUB_SHA}"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
-          node-version-file: demo/.nvmrc
+          node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: demo/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Unit tests
+      - name: SDK and demo unit tests
+        working-directory: ${{ github.workspace }}
         run: |
           npm ci
-          npm run typecheck
-          npm test
+          npm run typecheck --workspace sdk
+          npm test --workspace sdk
+          npm run typecheck --workspace demo
+          npm test --workspace demo
 
       - id: auth
         uses: google-github-actions/auth@v2
@@ -108,7 +111,8 @@ jobs:
       - name: Build and push the runtime image
         uses: docker/build-push-action@v5
         with:
-          context: demo
+          context: .
+          file: demo/Dockerfile
           target: runtime
           platforms: linux/amd64
           push: true

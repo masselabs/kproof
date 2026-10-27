@@ -33,12 +33,12 @@ describe('parseApiUrl', () => {
 });
 
 describe('parseEnv', () => {
-  it.each(['local', 'staging', 'production'])('accepts %s', (raw) => {
+  it.each(['local', 'staging'])('accepts %s', (raw) => {
     expect(parseEnv(raw)).toBe(raw);
   });
 
-  it.each([undefined, '', 'Staging', 'prod', 'toString', '__proto__', 'constructor'])('refuses %s by name', (raw) => {
-    expect(() => parseEnv(raw)).toThrow(/VITE_KPROOF_ENV must be one of local, staging, production/);
+  it.each([undefined, '', 'Staging', 'prod', 'production', 'toString', '__proto__', 'constructor'])('refuses %s by name', (raw) => {
+    expect(() => parseEnv(raw)).toThrow(/VITE_KPROOF_ENV must be one of local, staging,/);
   });
 });
 

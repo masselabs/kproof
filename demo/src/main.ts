@@ -1,9 +1,10 @@
 import QRCode from 'qrcode';
 import './tokens.css';
 import './style.css';
+import { RelayClient, SI_DO, buildInputs, verifyAnswer, type CircuitId, type RequestStatus } from '@kproof/sdk';
+import { CHOICES, lookupChoice } from './choices';
 import { ENVIRONMENTS, loadConfig } from './config';
-import { CIRCUITS, InputError, SI_DO, lookupCircuit, type CircuitId, type FormValues } from './requests';
-import { RelayClient, RelayError } from './relay';
+import { describeError } from './messages';
 import { renderResult, statusText } from './view';
 
 const DAPP_NAME = 'KProof 데모';
@@ -29,9 +30,8 @@ const requestIdText = el<HTMLElement>('request-id');
 const qr = el<HTMLCanvasElement>('qr');
 const regionSelect = form.elements.namedItem('targetRegion') as HTMLSelectElement;
 
-const badge = ENVIRONMENTS[config.env].badge;
+const { badge, verify: verifyEnvironment } = ENVIRONMENTS[config.env];
 el('env-badge').textContent = badge;
-el('env-badge').hidden = badge === '';
 
 for (const name of SI_DO) {
   const option = document.createElement('option');
@@ -41,7 +41,7 @@ for (const name of SI_DO) {
 }
 
 let selected: CircuitId = 'mdl_kr_age';
-for (const [id, spec] of Object.entries(CIRCUITS) as Array<[CircuitId, typeof CIRCUITS[CircuitId]]>) {
+for (const [id, spec] of Object.entries(CHOICES) as Array<[CircuitId, typeof CHOICES[CircuitId]]>) {
   const label = document.createElement('label');
   label.className = 'choice';
   const input = document.createElement('input');
@@ -58,7 +58,7 @@ for (const [id, spec] of Object.entries(CIRCUITS) as Array<[CircuitId, typeof CI
 }
 
 function showFields(): void {
-  const spec = lookupCircuit(selected);
+  const spec = lookupChoice(selected);
   for (const field of ['ageThreshold', 'targetRegion'] as const) {
     el(`field-${field}`).hidden = !spec.fields.includes(field);
   }
@@ -66,14 +66,14 @@ function showFields(): void {
 choices.addEventListener('change', (e) => {
   const target = e.target as HTMLInputElement;
   if (target.name === 'circuit') {
-    lookupCircuit(target.value);
+    lookupChoice(target.value);
     selected = target.value as CircuitId;
     showFields();
   }
 });
 showFields();
 
-function formValues(): FormValues {
+function formValues() {
   const get = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement).value;
   return { scope: get('scope'), ageThreshold: get('ageThreshold'), targetRegion: get('targetRegion') };
 }
@@ -84,6 +84,22 @@ function showFormError(message: string): void {
 }
 
 let stopWatching: (() => void) | undefined;
+let shown = 0;
+
+/** Shows the answer at once, then the SDK's verification of it when that returns. */
+function showResult(circuitId: CircuitId, inputs: Record<string, unknown>, s: RequestStatus): void {
+  const ticket = ++shown;
+  result.replaceChildren(renderResult(document, s));
+  result.hidden = false;
+  if (s.status !== 'completed') return;
+  verifyAnswer({ circuitId, inputs }, s, { environment: verifyEnvironment })
+    .then((outcome) => {
+      if (ticket === shown) result.replaceChildren(renderResult(document, s, outcome));
+    })
+    .catch((err: unknown) => {
+      if (ticket === shown) statusLine.textContent = `검증하지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
+    });
+}
 let busy = false;
 
 form.addEventListener('submit', async (e) => {
@@ -93,9 +109,9 @@ form.addEventListener('submit', async (e) => {
 
   let inputs: Record<string, unknown>;
   try {
-    inputs = lookupCircuit(selected).buildInputs(formValues());
+    inputs = buildInputs(selected, formValues());
   } catch (err) {
-    showFormError(err instanceof InputError ? err.message : String(err));
+    showFormError(describeError(err));
     return;
   }
 
@@ -103,7 +119,8 @@ form.addEventListener('submit', async (e) => {
   submit.disabled = true;
   submit.textContent = '요청 만드는 중…';
   try {
-    const created = await relay.createRequest(selected, inputs, DAPP_NAME);
+    const circuitId = selected;
+    const created = await relay.createRequest(circuitId, inputs, DAPP_NAME);
     await QRCode.toCanvas(qr, created.deepLink, { width: 220, margin: 1, errorCorrectionLevel: 'L' });
     openApp.href = created.deepLink;
     requestIdText.textContent = created.requestId;
@@ -116,17 +133,14 @@ form.addEventListener('submit', async (e) => {
       created.requestId,
       (s) => {
         statusLine.textContent = statusText(s);
-        if (s.status !== 'pending' && s.status !== 'generating') {
-          result.replaceChildren(renderResult(document, s));
-          result.hidden = false;
-        }
+        if (s.status !== 'pending' && s.status !== 'generating') showResult(circuitId, inputs, s);
       },
       (err) => {
         statusLine.textContent = `상태를 확인하지 못했습니다: ${err.message}`;
       },
     );
   } catch (err) {
-    showFormError(err instanceof RelayError ? err.message : `요청을 만들지 못했습니다: ${String(err)}`);
+    showFormError(describeError(err));
   } finally {
     busy = false;
     submit.disabled = false;
@@ -137,6 +151,7 @@ form.addEventListener('submit', async (e) => {
 el<HTMLButtonElement>('reset').addEventListener('click', () => {
   stopWatching?.();
   stopWatching = undefined;
+  shown++;
   panel.hidden = true;
   form.hidden = false;
 });

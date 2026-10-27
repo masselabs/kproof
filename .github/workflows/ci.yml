@@ -9,27 +9,46 @@ permissions:
   contents: read
 
 jobs:
-  demo:
-    name: Demo (typecheck, unit, build)
+  sdk:
+    name: SDK (typecheck, unit, real verifiers)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: demo
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version-file: demo/.nvmrc
+          node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: demo/package-lock.json
+          cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
+      - run: npm run typecheck --workspace sdk
+      - run: npm test --workspace sdk
+      - name: Real proofs against the deployed Base Sepolia verifiers
+        run: npm run test:e2e --workspace sdk
+      - name: Package builds
+        run: npm run build --workspace sdk
+
+  demo:
+    name: Demo (typecheck, unit, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run typecheck --workspace demo
+      - run: npm test --workspace demo
       - name: Build refuses a missing relay URL
+        working-directory: demo
         run: |
           if VITE_KPROOF_ENV=staging npm run build >/tmp/build.log 2>&1; then
             echo "build succeeded without VITE_KPROOF_API_URL" >&2; exit 1
           fi
           grep -q "VITE_KPROOF_API_URL is required" /tmp/build.log
-      - name: Build for staging
-        run: VITE_KPROOF_API_URL=https://stg-api.koreanproof.com VITE_KPROOF_ENV=staging npm run build
+      - name: Build for staging writes the connect list
+        working-directory: demo
+        run: |
+          VITE_KPROOF_API_URL=https://stg-api.koreanproof.com VITE_KPROOF_ENV=staging npm run build
+          test "$(cat dist/connect-src.txt)" = "https://stg-api.koreanproof.com wss://stg-api.koreanproof.com https://sepolia.base.org"

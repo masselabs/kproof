@@ -27,9 +27,16 @@ export interface CreatedRequest {
   deepLink: string;
 }
 
+/**
+ * Why a relay call failed. `status` is the HTTP status (0 when no answer
+ * arrived); `kind` is stable for callers to branch on and translate.
+ */
+export type RelayErrorKind = 'network' | 'rate_limited' | 'refused' | 'bad_response';
+
 export class RelayError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(readonly status: number, readonly kind: RelayErrorKind, message: string) {
     super(message);
+    this.name = 'RelayError';
   }
 }
 
@@ -53,13 +60,13 @@ async function call(fetchImpl: Fetch, url: string, init?: RequestInit): Promise<
   try {
     res = await fetchImpl(url, init);
   } catch (err) {
-    throw new RelayError(0, `서버에 연결할 수 없습니다 (${err instanceof Error ? err.message : String(err)}).`);
+    throw new RelayError(0, 'network', `Cannot reach the relay: ${err instanceof Error ? err.message : String(err)}`);
   }
   const body = await readJson(res);
   if (!res.ok) {
     const reason = typeof body.error === 'string' ? body.error : res.statusText;
-    if (res.status === 429) throw new RelayError(429, '요청이 너무 많습니다. 잠시 후 다시 시도하세요.');
-    throw new RelayError(res.status, `서버가 요청을 거절했습니다 (HTTP ${res.status}): ${reason}`);
+    if (res.status === 429) throw new RelayError(429, 'rate_limited', `Rate limited by the relay: ${reason}`);
+    throw new RelayError(res.status, 'refused', `The relay refused the call (HTTP ${res.status}): ${reason}`);
   }
   return body;
 }
@@ -67,7 +74,7 @@ async function call(fetchImpl: Fetch, url: string, init?: RequestInit): Promise<
 function parseStatus(body: Record<string, unknown>, requestId: string): RequestStatus {
   const status = body.status;
   if (typeof status !== 'string' || !(['pending', 'generating', ...TERMINAL] as string[]).includes(status)) {
-    throw new RelayError(0, `서버가 알 수 없는 상태를 보냈습니다: ${String(status)}`);
+    throw new RelayError(0, 'bad_response', `The relay sent an unknown status: ${String(status)}`);
   }
   return {
     requestId,
@@ -105,7 +112,7 @@ export class RelayClient {
   async createRequest(circuitId: string, inputs: Record<string, unknown>, dappName: string): Promise<CreatedRequest> {
     const challenge = await call(this.fetchImpl, `${this.api}/challenge`);
     if (typeof challenge.requestId !== 'string' || typeof challenge.challenge !== 'string') {
-      throw new RelayError(0, '서버의 세션 응답에 requestId 또는 challenge가 없습니다.');
+      throw new RelayError(0, 'bad_response', 'The challenge answer has no requestId or challenge');
     }
     const body = await call(this.fetchImpl, `${this.api}/proof/request`, {
       method: 'POST',
@@ -120,7 +127,7 @@ export class RelayClient {
       }),
     });
     if (typeof body.requestId !== 'string' || typeof body.deepLink !== 'string') {
-      throw new RelayError(0, '서버의 요청 응답에 requestId 또는 deepLink가 없습니다.');
+      throw new RelayError(0, 'bad_response', 'The request answer has no requestId or deepLink');
     }
     return { requestId: body.requestId, deepLink: body.deepLink };
   }
@@ -156,7 +163,7 @@ export class RelayClient {
         emit(await this.getStatus(requestId));
       } catch (err) {
         if (err instanceof RelayError && err.status === 404) {
-          emit({ requestId, status: 'expired', error: '요청이 만료되었거나 서버에서 사라졌습니다.' });
+          emit({ requestId, status: 'expired', error: 'The request expired or is no longer on the relay' });
           return;
         }
         if (err instanceof RelayError && err.status >= 400 && err.status < 500 && err.status !== 429) {

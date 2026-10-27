@@ -14,10 +14,15 @@ export interface DemoConfig {
 }
 
 /** The label each deployment shows. An unknown name is refused. */
+/**
+ * The label each deployment shows, and which SDK environment (chain and
+ * verifier contracts) its answers are verified against. A local relay still
+ * hands out proofs for the staging contracts. There is no production row: the
+ * SDK has no production verifiers yet, so a production build fails here.
+ */
 export const ENVIRONMENTS = {
-  local: { badge: '로컬' },
-  staging: { badge: '스테이징' },
-  production: { badge: '' },
+  local: { badge: '로컬', verify: 'staging' },
+  staging: { badge: '스테이징', verify: 'staging' },
 } as const;
 export type DemoEnv = keyof typeof ENVIRONMENTS;
 

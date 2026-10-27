@@ -1,0 +1,34 @@
+{
+  "name": "@kproof/sdk",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Ask a KProof user for a Korea Mobile ID proof and verify the answer.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "vitest run -c vitest.config.e2e.ts"
+  },
+  "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "socket.io-client": "4.8.3"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.1.12",
+    "@types/node": "24.19.2"
+  }
+}

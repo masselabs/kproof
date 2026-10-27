@@ -27,7 +27,7 @@ describe('createRequest', () => {
       .mockResolvedValueOnce(json(201, { requestId: RID, deepLink: 'kproof://proof-request?data=x', status: 'pending' }));
     const client = new RelayClient({ apiUrl: API, fetchImpl });
 
-    const created = await client.createRequest('mdl_kr_age', { scope: 's', ageThreshold: 19 }, 'KProof 데모');
+    const created = await client.createRequest('mdl_kr_age', { scope: 's', ageThreshold: 19 }, 'KProof demo');
 
     expect(created).toEqual({ requestId: RID, deepLink: 'kproof://proof-request?data=x' });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
@@ -35,7 +35,7 @@ describe('createRequest', () => {
     expect(fetchImpl.mock.calls[1]![0]).toBe(`${API}/api/v1/proof/request`);
     expect(JSON.parse(fetchImpl.mock.calls[1]![1].body)).toEqual({
       requestId: RID, challenge: '0xabc', circuitId: 'mdl_kr_age',
-      inputs: { scope: 's', ageThreshold: 19 }, scope: 's', dappName: 'KProof 데모',
+      inputs: { scope: 's', ageThreshold: 19 }, scope: 's', dappName: 'KProof demo',
     });
   });
 
@@ -50,7 +50,7 @@ describe('createRequest', () => {
   it('says plainly when it is rate limited', async () => {
     const fetchImpl = vi.fn().mockResolvedValueOnce(json(429, { error: 'Too many requests' }));
     await expect(new RelayClient({ apiUrl: API, fetchImpl }).createRequest('mdl_kr_age', {}, 'd'))
-      .rejects.toThrow(/요청이 너무 많습니다/);
+      .rejects.toMatchObject({ kind: 'rate_limited', status: 429 });
   });
 
   it('reports an unreachable server instead of hanging', async () => {
@@ -58,7 +58,8 @@ describe('createRequest', () => {
     const err = await new RelayClient({ apiUrl: API, fetchImpl }).createRequest('mdl_kr_age', {}, 'd').catch((e) => e);
     expect(err).toBeInstanceOf(RelayError);
     expect(err.status).toBe(0);
-    expect(err.message).toMatch(/연결할 수 없습니다.*Failed to fetch/);
+    expect(err.kind).toBe('network');
+    expect(err.message).toMatch(/Cannot reach the relay: Failed to fetch/);
   });
 
   it.each([
