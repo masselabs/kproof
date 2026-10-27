@@ -1,0 +1,151 @@
+# KProof demo -> Cloud Run, GCP project masselabs-zkproofport, asia-northeast3.
+#
+# A static page (demo/) built for ONE relay and served by unprivileged nginx.
+# Public hostnames go through the external Application Load Balancer that also
+# fronts kproof-server (Cloud Run domain mappings are not offered in
+# asia-northeast3): stg-demo.koreanproof.com is a host rule on
+# kproof-stg-urlmap -> kproof-demo-stg-be -> serverless NEG
+# kproof-demo-stg-neg -> service kproof-demo-staging.
+#
+# Identity: WIF provider github-kproof (admits only masselabs/kproof) ->
+# kproof-deployer; the service runs as kproof-demo-<environment>, which holds
+# no permissions. Only main deploys, and the deployed page must serve the
+# bundle this run built, or the run fails.
+#
+# Repository secrets: GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT
+
+name: Deploy demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - staging
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-demo-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT: masselabs-zkproofport
+  GCP_REGION: asia-northeast3
+  REGISTRY: asia-northeast3-docker.pkg.dev/masselabs-zkproofport/kproof
+
+jobs:
+  deploy:
+    name: Deploy demo (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: demo
+    steps:
+      - name: Only main deploys
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Refusing to deploy $GITHUB_REF: only refs/heads/main is deployed." >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Resolve environment
+        id: env
+        env:
+          DEPLOY_ENV: ${{ inputs.environment }}
+        run: |
+          case "$DEPLOY_ENV" in
+            staging) API_URL=https://stg-api.koreanproof.com; PAGE_URL=https://stg-demo.koreanproof.com ;;
+            *) echo "Unknown environment '$DEPLOY_ENV'. Known: staging." >&2; exit 1 ;;
+          esac
+          {
+            echo "SERVICE=kproof-demo-${DEPLOY_ENV}"
+            echo "API_URL=${API_URL}"
+            echo "PAGE_URL=${PAGE_URL}"
+            echo "NODE_VERSION=$(tr -d '[:space:]' < .nvmrc)"
+            echo "IMAGE=${REGISTRY}/kproof-demo:${DEPLOY_ENV}-${GITHUB_SHA}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: demo/.nvmrc
+          cache: npm
+          cache-dependency-path: demo/package-lock.json
+
+      - name: Unit tests
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push the runtime image
+        uses: docker/build-push-action@v5
+        with:
+          context: demo
+          target: runtime
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            NODE_VERSION=${{ steps.env.outputs.NODE_VERSION }}
+            VITE_KPROOF_API_URL=${{ steps.env.outputs.API_URL }}
+            VITE_KPROOF_ENV=${{ inputs.environment }}
+            GIT_COMMIT=${{ github.sha }}
+          tags: ${{ steps.env.outputs.IMAGE }}
+          cache-from: type=gha,scope=demo
+          cache-to: type=gha,mode=max,scope=demo
+
+      - name: Deploy to Cloud Run
+        env:
+          SERVICE: ${{ steps.env.outputs.SERVICE }}
+          IMAGE: ${{ steps.env.outputs.IMAGE }}
+          DEPLOY_ENV: ${{ inputs.environment }}
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --project "$GCP_PROJECT" \
+            --region "$GCP_REGION" \
+            --image "$IMAGE" \
+            --service-account "kproof-demo-${DEPLOY_ENV}@${GCP_PROJECT}.iam.gserviceaccount.com" \
+            --port 8080 \
+            --cpu 1 \
+            --memory 256Mi \
+            --min-instances 0 \
+            --max-instances 3 \
+            --allow-unauthenticated \
+            --ingress internal-and-cloud-load-balancing \
+            --quiet
+
+      - name: The public page serves this build
+        env:
+          PAGE_URL: ${{ steps.env.outputs.PAGE_URL }}
+        run: |
+          for i in $(seq 1 30); do
+            served="$(curl -fsS "${PAGE_URL}/version.txt" 2>/dev/null || true)"
+            if [ "$served" = "$GITHUB_SHA" ]; then
+              echo "${PAGE_URL} serves ${GITHUB_SHA}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "${PAGE_URL}/version.txt answered '${served:-nothing}', expected ${GITHUB_SHA}" >&2
+          exit 1

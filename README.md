@@ -12,7 +12,9 @@ on the device.
 
 ## Status
 
-Pre-development. This repository holds no code yet. The design is being worked
+Early development. The only code here so far is the demo page (`demo/`): a
+service creates a proof request, sends it to the server and waits for the app's
+answer. The app and the circuits do not exist yet. The design is being worked
 out alongside the Korea Mobile ID integration with KOMSCO (한국조폐공사), which
 issues and operates the mobile ID verification service.
 
@@ -25,6 +27,7 @@ circuit lands in the app, the SDK and the circuits in a single commit.
 app/        KProof mobile app (iOS, Android): reads the mobile ID and proves on the device
 sdk/        SDK for services: create a proof request and verify the answer
 circuits/   Noir circuits for Korea Mobile ID proofs
+demo/       Demo page: creates a proof request and waits for the answer (exists)
 ```
 
 The server (proof request relay and the SP module that talks to KOMSCO) lives in
@@ -33,7 +36,8 @@ a separate, private repository, `kproof-server`.
 ## Links
 
 - Website: [koreanproof.com](https://koreanproof.com) (in preparation)
-- Server API: `api.koreanproof.com` (planned)
+- Server API: `api.koreanproof.com` (planned), staging `stg-api.koreanproof.com`
+- Demo (staging): [stg-demo.koreanproof.com](https://stg-demo.koreanproof.com)
 
 ## License
 

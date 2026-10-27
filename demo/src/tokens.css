@@ -1,0 +1,56 @@
+/* Generated from brand/tokens.json by scripts/build-brand-kit.py. */
+:root {
+  --kp-color-blue: #0047A0;
+  --kp-color-blue-hover: #00377C;
+  --kp-color-red: #CD2E3A;
+  --kp-color-black: #09090B;
+  --kp-color-ink: #161619;
+  --kp-color-white: #FFFFFF;
+  --kp-color-paper: #F5F5F7;
+  --kp-color-muted: #62626E;
+  --kp-color-line: #DDDDE2;
+  --kp-color-blue-soft: #EDF3FA;
+  --kp-color-blue-night: #10204B;
+  --kp-color-on-dark: #BFC1CE;
+  --kp-color-focus: #3264DA;
+  --kp-font-sans: Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+  --kp-space-1: 4px;
+  --kp-space-2: 8px;
+  --kp-space-3: 16px;
+  --kp-space-4: 24px;
+  --kp-space-5: 32px;
+  --kp-space-6: 48px;
+  --kp-space-7: 64px;
+  --kp-space-8: 96px;
+  --kp-radius-small: 4px;
+  --kp-radius-medium: 12px;
+  --kp-radius-large: 24px;
+  --kp-radius-pill: 999px;
+  --kp-motion-quick: 200ms;
+  --kp-motion-reveal: 800ms;
+  --kp-motion-ease: cubic-bezier(.2, .7, .2, 1);
+  --kp-motion-red-loop: 18s;
+  --kp-motion-blue-loop: 23s;
+  --kp-layout-width: 1120px;
+  --kp-layout-section: 144px;
+  --type-display: clamp(40px, 4.5vw, 64px);
+  --type-heading: clamp(34px, 3.8vw, 52px);
+  --type-subheading: clamp(22px, 2.1vw, 26px);
+  --type-lead: clamp(18px, 1.6vw, 22px);
+  --type-body: 17px;
+  --type-label: 14px;
+  --type-caption: 13px;
+}
+@media (max-width: 900px) { :root { --kp-layout-section: 96px; } }
+@media (max-width: 600px) {
+  :root {
+    --kp-layout-section: 80px;
+    --type-display: clamp(30px, 8.2vw, 36px);
+    --type-heading: clamp(29px, 7.6vw, 34px);
+    --type-subheading: 22px;
+    --type-lead: 17px;
+    --type-body: 16px;
+    --type-label: 13px;
+    --type-caption: 12px;
+  }
+}

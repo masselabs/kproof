@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  demo:
+    name: Demo (typecheck, unit, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: demo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: demo/.nvmrc
+          cache: npm
+          cache-dependency-path: demo/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build refuses a missing relay URL
+        run: |
+          if VITE_KPROOF_ENV=staging npm run build >/tmp/build.log 2>&1; then
+            echo "build succeeded without VITE_KPROOF_API_URL" >&2; exit 1
+          fi
+          grep -q "VITE_KPROOF_API_URL is required" /tmp/build.log
+      - name: Build for staging
+        run: VITE_KPROOF_API_URL=https://stg-api.koreanproof.com VITE_KPROOF_ENV=staging npm run build
