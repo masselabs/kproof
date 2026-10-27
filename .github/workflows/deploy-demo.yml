@@ -10,7 +10,11 @@
 # Identity: WIF provider github-kproof (admits only masselabs/kproof) ->
 # kproof-deployer; the service runs as kproof-demo-<environment>, which holds
 # no permissions. Only main deploys, and the deployed page must serve the
-# bundle this run built, or the run fails.
+# commit this run built (/version.txt), or the run fails.
+#
+# A NEW hostname's Google-managed certificate took about 45 minutes to become
+# ACTIVE (2026-10-27, stg-demo), longer than this check waits; the first run
+# failed that way and passed when re-run after the certificate was served.
 #
 # Repository secrets: GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT
 
