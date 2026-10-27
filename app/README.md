@@ -72,6 +72,13 @@ whose digest differs is deleted and the proof stops; there is no branch, no
 checks against were deployed; each verifier's bytecode embeds the `vk_hash` of
 the pinned key.
 
+## App icon and launch screen
+
+`swift scripts/make-icons.swift` renders `assets/brand/app-icon.svg` (brand kit
+v1.0, masselabs/kproof-website d6eb2c1) into the iOS app icon set, the iOS
+launch logo and the Android launcher icons. The mark is drawn as supplied and
+only scaled, as the brand kit asks.
+
 ## Physical iPhone
 
 ```bash
@@ -182,7 +189,6 @@ real staging request.
 ## Not done yet
 
 - QR scanning ("QR로 요청 받기"): needs a camera library; requests arrive by deep link only.
-- App icon: the brand kit's 512 px master is in the private `masselabs/kproof-website`; the template icon is still in place.
 - Government signature check: the circuits do not verify the issuer's signature yet (the RAON HS256 integrity fields are commented out in the circuits). The "정부 서명 확인" badge from the design is therefore not shown.
 - The age circuit compares birth YEAR with the current year (`assert_age` in `mdl/kr-common`), so it proves "age by year" (연 나이), not 만 나이. The UI says "N세 이상 (출생 연도 기준)".
 

@@ -65,6 +65,12 @@ barretenberg)로 빌드하고 `../scripts/sync-mopro-bindings.sh`가 여기에 �
 바이트 단위로 같고, SDK가 확인하는 Base Sepolia 검증 컨트랙트가 그 커밋에서 배포되었습니다.
 각 검증 컨트랙트의 바이트코드에 고정된 키의 `vk_hash`가 들어 있습니다.
 
+## 앱 아이콘과 시작 화면
+
+`swift scripts/make-icons.swift`가 `assets/brand/app-icon.svg`(브랜드 키트 v1.0,
+masselabs/kproof-website d6eb2c1)를 iOS 앱 아이콘, iOS 시작 화면 로고, Android 런처
+아이콘으로 그립니다. 브랜드 키트 요청대로 마크를 고치지 않고 크기만 바꿉니다.
+
 ## 실제 iPhone
 
 ```bash
@@ -108,7 +114,6 @@ callback 허용 목록, 회로 출처, RAON 주소. 모르는 환경 이름은 �
 ## 아직 안 된 것
 
 - QR 스캔("QR로 요청 받기"): 카메라 라이브러리가 필요합니다. 지금은 딥링크로만 요청을 받습니다.
-- 앱 아이콘: 브랜드 키트의 512 px 원본이 비공개 `masselabs/kproof-website`에 있어 템플릿 아이콘 그대로입니다.
 - 정부 서명 확인: 회로가 아직 발급자 서명을 검증하지 않습니다(RAON HS256 무결성 필드가 회로에서 주석 처리됨). 그래서 디자인의 "정부 서명 확인" 표시는 넣지 않았습니다.
 - 나이 회로는 출생 연도와 올해를 비교합니다(`mdl/kr-common`의 `assert_age`). 즉 만 나이가 아니라 연 나이를 증명하며, 화면에도 "출생 연도 기준"이라고 씁니다.
 
