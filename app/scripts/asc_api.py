@@ -119,24 +119,33 @@ def request(method: str, path: str, body=None):
     global _TOKEN
     if _TOKEN is None:
         _TOKEN = token()
-    req = urllib.request.Request(
-        API + path,
-        data=json.dumps(body).encode() if body is not None else None,
-        headers={'Authorization': f'Bearer {_TOKEN}', 'Content-Type': 'application/json'},
-        method=method,
-    )
-    try:
-        with urllib.request.urlopen(req) as res:
-            raw = res.read()
-    except urllib.error.HTTPError as err:
-        detail = err.read().decode()
+    # App Store Connect answers 5xx now and then on plain reads (seen
+    # 2026-10-27: 500 on GET /v1/apps, then success seconds later). A 5xx is
+    # retried a few times; any other status is the answer.
+    attempts = 4
+    for attempt in range(1, attempts + 1):
+        req = urllib.request.Request(
+            API + path,
+            data=json.dumps(body).encode() if body is not None else None,
+            headers={'Authorization': f'Bearer {_TOKEN}', 'Content-Type': 'application/json'},
+            method=method,
+        )
         try:
-            errors = json.loads(detail)['errors']
-            detail = '\n'.join(f"{e.get('title')}: {e.get('detail')}" for e in errors)
-        except Exception:
-            pass
-        sys.exit(f'{method} {path} → {err.code}\n{detail}')
-    return json.loads(raw) if raw.strip() else {}
+            with urllib.request.urlopen(req) as res:
+                raw = res.read()
+            return json.loads(raw) if raw.strip() else {}
+        except urllib.error.HTTPError as err:
+            if err.code >= 500 and attempt < attempts:
+                time.sleep(5 * attempt)
+                continue
+            detail = err.read().decode()
+            try:
+                errors = json.loads(detail)['errors']
+                detail = '\n'.join(f"{e.get('title')}: {e.get('detail')}" for e in errors)
+            except Exception:
+                pass
+            sys.exit(f'{method} {path} → {err.code}\n{detail}')
+    sys.exit(f'{method} {path}: no answer after {attempts} attempts')
 
 
 def get(path: str):
