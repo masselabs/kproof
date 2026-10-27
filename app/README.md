@@ -191,6 +191,7 @@ real staging request.
 - QR scanning ("QR로 요청 받기"): needs a camera library; requests arrive by deep link only.
 - Government signature check: the circuits do not verify the issuer's signature yet (the RAON HS256 integrity fields are commented out in the circuits). The "정부 서명 확인" badge from the design is therefore not shown.
 - The age circuit compares birth YEAR with the current year (`assert_age` in `mdl/kr-common`), so it proves "age by year" (연 나이), not 만 나이. The UI says "N세 이상 (출생 연도 기준)".
+- RAON imports only the driver licence today: on 2026-10-27 its server answered `OACX_NO_PARAM_PROVIDER` for 주민등록증 (`comrc_v1.5`) and 외국인등록증 (`coresidence_v1.5`) and `OACX_SERVER_ERROR` for 국가보훈등록증 (`comnh_v1.5`). Those rows are shown but disabled (`src/config/cardTypes.ts` `raon`), and the answer maps to E6008.
 
 ## License
 

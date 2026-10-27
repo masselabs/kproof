@@ -86,6 +86,11 @@ async function post(deps: RaonDeps, stage: RaonStage, path: string, body: object
 }
 
 function requireSuccess(stage: RaonStage, env: Envelope): void {
+  if (env.oacxCode === 'OACX_NO_PARAM_PROVIDER') {
+    // RAON has no provider configured for this card type (measured 2026-10-27
+    // for comrc_v1.5 and coresidence_v1.5). Not a network failure: say so.
+    throw new AppError('E6008', `RAON ${stage}: provider not configured (oacxCode=OACX_NO_PARAM_PROVIDER)`);
+  }
   if (env.oacxCode !== 'OACX_SUCCESS') {
     const message = typeof env.clientMessage === 'string' ? env.clientMessage : 'no message';
     throw stageError(stage, `oacxCode=${String(env.oacxCode)} (${message})`);

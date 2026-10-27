@@ -116,6 +116,15 @@ describe('runRaonImport', () => {
     }
   });
 
+  test('a card type RAON has no provider for is its own error, not a generic failure', async () => {
+    // RAON's real answer for comrc_v1.5 / coresidence_v1.5 on 2026-10-27.
+    const script = happy() as Record<string, Answer[]>;
+    script['/oacx/api/v1.0/authen/app/request'] = [{json: {oacxCode: 'OACX_NO_PARAM_PROVIDER', resultCode: '303', clientMessage: '인증사업자 값이 설정되지 않았습니다.</br>서비스 관리자에게 문의하세요'}}];
+    const r = await codeOf(runRaonImport(setup(script).deps, opts()));
+    expect(r.code).toBe('E6008');
+    expect(r.detail).toContain('provider not configured');
+  });
+
   test('keeps polling through errors', async () => {
     const script = happy() as Record<string, Answer[]>;
     script['/oacx/api/v1.0/authen/app/result'] = [{status: 500}, {throws: 'socket hang up'}, {json: pending}, {json: verified}];

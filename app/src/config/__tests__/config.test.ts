@@ -3,6 +3,7 @@ import {CIRCUIT_IDS, isCircuitId} from '../circuits';
 import {SYMBOL_COLOR, WORDMARK_COLOR} from '../../ui/brandMarks';
 import {ko} from '../../i18n/ko';
 import {ERROR_CODES} from '../../errors';
+import {CARD_ORDER, CARD_TYPES, isImportable} from '../cardTypes';
 
 // Node built-ins, typed locally so node's types do not leak into app code.
 declare const __dirname: string;
@@ -45,5 +46,20 @@ describe('copy and assets', () => {
       expect(code).toMatch(/^E\d{4}$/);
       expect(ko.errors[code].title.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('RAON availability per card type', () => {
+  test('matches what RAON answered on 2026-10-27: only the driver licence imports', () => {
+    expect(CARD_ORDER.filter(isImportable)).toEqual(['comdl_v1_5']);
+    expect(CARD_TYPES.comrc_v1_5.raon).toBe('not_configured');
+    expect(CARD_TYPES.coresidence_v1_5.raon).toBe('not_configured');
+    expect(CARD_TYPES.comnh_v1_5.raon).toBe('server_error');
+  });
+
+  test('the add-ID screen uses the table, not its own list', () => {
+    const screen = fs.readFileSync(path.join(__dirname, '../../screens/AddIdScreen.tsx'), 'utf8');
+    expect(screen).toContain('isImportable(key)');
+    expect(screen).toContain('disabled={running || !importable}');
   });
 });

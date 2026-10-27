@@ -3,7 +3,7 @@ import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {ko} from '../i18n/ko';
-import {CARD_ORDER, CARD_TYPES, type CardTypeKey} from '../config/cardTypes';
+import {CARD_ORDER, CARD_TYPES, isImportable, type CardTypeKey} from '../config/cardTypes';
 import {raonDeps} from '../app/deps';
 import {toAppError} from '../errors';
 import {cardFromRaon} from '../services/importCard';
@@ -74,21 +74,22 @@ export function AddIdScreen() {
         {CARD_ORDER.map((key) => {
           const has = vault?.cards.some((c) => c.type === key) === true;
           const selected = chosen === key;
+          const importable = isImportable(key);
           return (
             <Pressable
               key={key}
               accessibilityRole="radio"
-              accessibilityState={{selected}}
-              disabled={running}
+              accessibilityState={{selected, disabled: !importable}}
+              disabled={running || !importable}
               onPress={() => setChosen(key)}
-              style={[styles.option, selected && styles.optionSelected]}>
+              style={[styles.option, selected && styles.optionSelected, !importable && styles.optionDisabled]}>
               <View style={[styles.swatch, {backgroundColor: cardColor(key)}]} />
               <View style={styles.flex}>
                 <Txt weight="bold" size={15}>
                   {cardName(key)}
                 </Txt>
                 <Txt size={12} color={colors.muted}>
-                  {has ? ko.addId.already : ko.addId.sourceApp}
+                  {!importable ? ko.addId.unavailable : has ? ko.addId.already : ko.addId.sourceApp}
                 </Txt>
               </View>
               {selected ? <Icon name="check" size={20} color={colors.blue} /> : null}
@@ -141,6 +142,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   optionSelected: {borderColor: colors.blue, borderWidth: 2},
+  optionDisabled: {opacity: 0.45},
   swatch: {width: 36, height: 24, borderRadius: 4},
   flex: {flex: 1},
   steps: {gap: 6, marginTop: 4},
