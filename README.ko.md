@@ -32,12 +32,12 @@ circuits/   모바일 신분증 증명용 Noir 회로
 ## 링크
 
 - 웹사이트: [koreanproof.com](https://koreanproof.com) (준비 중)
-- 서버 API: `api.kproof.kr` (예정)
+- 서버 API: `api.koreanproof.com` (예정)
 
 ## 라이선스
 
-아직 정하지 않았습니다. 라이선스를 추가하기 전까지는 이 코드를 사용, 복제, 수정할 수
-있는 권리를 부여하지 않습니다.
+[MIT](LICENSE). 이 라이선스는 코드에만 적용되며, KProof 이름과 브랜드 이미지에는
+적용되지 않습니다.
 
 ## 연락처
 

@@ -33,12 +33,12 @@ a separate, private repository, `kproof-server`.
 ## Links
 
 - Website: [koreanproof.com](https://koreanproof.com) (in preparation)
-- Server API: `api.kproof.kr` (planned)
+- Server API: `api.koreanproof.com` (planned)
 
 ## License
 
-Not chosen yet. Until a license is added, no rights to use, copy or modify this
-code are granted.
+[MIT](LICENSE). The license covers the code only; the KProof name and brand
+artwork are not licensed by it.
 
 ## Contact
 
