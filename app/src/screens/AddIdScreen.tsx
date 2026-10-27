@@ -3,7 +3,7 @@ import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {ko} from '../i18n/ko';
-import {CARD_ORDER, CARD_TYPES, isImportable, type CardTypeKey} from '../config/cardTypes';
+import {CARD_ORDER, REQUEST_PROVIDER} from '../config/cardTypes';
 import {raonDeps} from '../app/deps';
 import {toAppError} from '../errors';
 import {cardFromRaon} from '../services/importCard';
@@ -21,23 +21,21 @@ export const IMPORT_POLL_MS = 3_000;
 export function AddIdScreen() {
   const nav = useNavigation();
   const vault = useSession((s) => s.vault);
-  const [chosen, setChosen] = useState<CardTypeKey | null>(null);
   const [running, setRunning] = useState(false);
   const abort = useRef<AbortController | null>(null);
 
   const start = async () => {
-    if (chosen === null) return;
     const controller = new AbortController();
     abort.current = controller;
     setRunning(true);
     try {
       const data = await runRaonImport(raonDeps(), {
-        provider: CARD_TYPES[chosen].provider,
+        provider: REQUEST_PROVIDER,
         signal: controller.signal,
         timeoutMs: IMPORT_TIMEOUT_MS,
         pollIntervalMs: IMPORT_POLL_MS,
       });
-      const card = cardFromRaon(chosen, data, new Date());
+      const card = cardFromRaon(data, new Date());
       // The person may have been away long enough for the app to lock; the
       // card is written only into the vault they unlock again.
       const current = await session.whenUnlocked();
@@ -73,29 +71,24 @@ export function AddIdScreen() {
         </Txt>
         {CARD_ORDER.map((key) => {
           const has = vault?.cards.some((c) => c.type === key) === true;
-          const selected = chosen === key;
-          const importable = isImportable(key);
           return (
-            <Pressable
-              key={key}
-              accessibilityRole="radio"
-              accessibilityState={{selected, disabled: !importable}}
-              disabled={running || !importable}
-              onPress={() => setChosen(key)}
-              style={[styles.option, selected && styles.optionSelected, !importable && styles.optionDisabled]}>
+            <View key={key} style={styles.option}>
               <View style={[styles.swatch, {backgroundColor: cardColor(key)}]} />
               <View style={styles.flex}>
                 <Txt weight="bold" size={15}>
                   {cardName(key)}
                 </Txt>
                 <Txt size={12} color={colors.muted}>
-                  {!importable ? ko.addId.unavailable : has ? ko.addId.already : ko.addId.sourceApp}
+                  {has ? ko.addId.already : ko.addId.sourceApp}
                 </Txt>
               </View>
-              {selected ? <Icon name="check" size={20} color={colors.blue} /> : null}
-            </Pressable>
+              {has ? <Icon name="check" size={20} color={colors.blue} /> : null}
+            </View>
           );
         })}
+        <Txt size={13} color={colors.ink}>
+          {ko.addId.representative}
+        </Txt>
         <View style={styles.steps}>
           {ko.addId.steps.map((s, i) => (
             <Txt key={s} size={14} color={colors.muted}>
@@ -119,7 +112,7 @@ export function AddIdScreen() {
             <TextButton label={ko.addId.cancel} onPress={cancel} />
           </>
         ) : (
-          <PrimaryButton label={ko.addId.open} onPress={start} disabled={chosen === null} />
+          <PrimaryButton label={ko.addId.open} onPress={start} />
         )}
       </View>
     </SafeAreaView>
@@ -141,8 +134,6 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: 12,
   },
-  optionSelected: {borderColor: colors.blue, borderWidth: 2},
-  optionDisabled: {opacity: 0.45},
   swatch: {width: 36, height: 24, borderRadius: 4},
   flex: {flex: 1},
   steps: {gap: 6, marginTop: 4},

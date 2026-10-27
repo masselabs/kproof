@@ -139,7 +139,8 @@ RAON import (`src/services/raon.ts`, `src/services/importCard.ts`):
 | No `iosLink` / `androidLink`; government app not installed (`canOpenURL` false) | E6004 naming the scheme only | `raon.test.ts` "missing or unopenable deep link" |
 | Unknown provider code (`comxx_v1.5`, `__proto__`) | refused before any network call, E6005 | `importCard.test.ts` "unknown provider" |
 | Returned data missing `ci`, `name`, `birth` (per card type); `birth` not a real YYYYMMDD date; `ci` over 88 bytes; name over 64 bytes; address over 256 bytes | E6006 naming the field, nothing stored | `importCard.test.ts` "required fields per card type" |
-| Returned `provider` differs from the card type the person chose | E6007, nothing stored | `importCard.test.ts` "returned card type must match" |
+| The government app returns the representative card, not the requested type | stored under the returned type | `importCard.test.ts` "the returned card decides the type" |
+| Returned `provider` missing or unknown | E6005 naming the value, nothing stored | `importCard.test.ts` "a card RAON does not name, or names unknown" |
 | Resident registration number (`ihidnum`) and other unused fields in the answer | not stored | `importCard.test.ts` "stores only the allow-listed fields" |
 
 Storage and lock (`src/services/vault.ts`, `src/domain/lock.ts`):
@@ -191,7 +192,7 @@ real staging request.
 - QR scanning ("QR로 요청 받기"): needs a camera library; requests arrive by deep link only.
 - Government signature check: the circuits do not verify the issuer's signature yet (the RAON HS256 integrity fields are commented out in the circuits). The "정부 서명 확인" badge from the design is therefore not shown.
 - The age circuit compares birth YEAR with the current year (`assert_age` in `mdl/kr-common`), so it proves "age by year" (연 나이), not 만 나이. The UI says "N세 이상 (출생 연도 기준)".
-- RAON imports only the driver licence today: on 2026-10-27 its server answered `OACX_NO_PARAM_PROVIDER` for 주민등록증 (`comrc_v1.5`) and 외국인등록증 (`coresidence_v1.5`) and `OACX_SERVER_ERROR` for 국가보훈등록증 (`comnh_v1.5`). Those rows are shown but disabled (`src/config/cardTypes.ts` `raon`), and the answer maps to E6008.
+- The import requests `comdl_v1.5` and stores whatever card the government app returns (its representative card), typed by RAON's `provider` field. RAON's provider list (2026-10-27) enables comdl and comdc and disables comrc / comnh, and only `comdl_v1.5` started an import, so that is the request; see `REQUEST_PROVIDER` in `src/config/cardTypes.ts`. Which exact `provider` string comes back for each card is not documented; both `comrc_v1.5` and `comrc` are accepted.
 
 ## License
 

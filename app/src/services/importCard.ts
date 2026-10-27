@@ -4,7 +4,7 @@
  * circuits' buffers.
  */
 import {AppError} from '../errors';
-import {CARD_TYPES, type CardTypeKey} from '../config/cardTypes';
+import {CARD_TYPES, keyForReturnedProvider, type CardTypeKey} from '../config/cardTypes';
 import {utf8Encode} from '../domain/bytes';
 import {ADDRESS_MAX, CI_LEN, NAME_MAX, TELNO_MAX} from '../domain/mdlInputs';
 
@@ -39,14 +39,16 @@ function asText(value: unknown): string | undefined {
   return undefined;
 }
 
-export function cardFromRaon(type: CardTypeKey, data: Record<string, unknown>, now: Date): StoredCard {
-  const spec = CARD_TYPES[type];
-
-  // RAON names the card type it actually returned. The person may have chosen
-  // one card while the mobile ID app submitted its representative card.
-  if (data.provider !== undefined && data.provider !== spec.provider) {
-    throw new AppError('E6007', `asked for ${spec.provider}, received ${String(data.provider)}`);
+export function cardFromRaon(data: Record<string, unknown>, now: Date): StoredCard {
+  // The government app submits the person's representative card, whatever was
+  // asked for; RAON names it in `provider`, and that decides the card type.
+  let type: CardTypeKey;
+  try {
+    type = keyForReturnedProvider(data.provider);
+  } catch (err) {
+    throw new AppError('E6005', err instanceof Error ? err.message : String(err));
   }
+  const spec = CARD_TYPES[type];
 
   for (const key of spec.required) {
     const v = asText(data[key]);

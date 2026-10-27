@@ -116,7 +116,7 @@ callback 허용 목록, 회로 출처, RAON 주소. 모르는 환경 이름은 �
 - QR 스캔("QR로 요청 받기"): 카메라 라이브러리가 필요합니다. 지금은 딥링크로만 요청을 받습니다.
 - 정부 서명 확인: 회로가 아직 발급자 서명을 검증하지 않습니다(RAON HS256 무결성 필드가 회로에서 주석 처리됨). 그래서 디자인의 "정부 서명 확인" 표시는 넣지 않았습니다.
 - 나이 회로는 출생 연도와 올해를 비교합니다(`mdl/kr-common`의 `assert_age`). 즉 만 나이가 아니라 연 나이를 증명하며, 화면에도 "출생 연도 기준"이라고 씁니다.
-- 지금 RAON으로는 운전면허증만 가져올 수 있습니다. 2026-10-27에 RAON 서버가 주민등록증(`comrc_v1.5`)과 외국인등록증(`coresidence_v1.5`)에는 `OACX_NO_PARAM_PROVIDER`, 국가보훈등록증(`comnh_v1.5`)에는 `OACX_SERVER_ERROR`를 답했습니다. 이 항목들은 보이되 고를 수 없고(`src/config/cardTypes.ts`의 `raon`), 이 답은 E6008로 안내합니다.
+- 가져오기는 `comdl_v1.5`로 요청하고, 정부 앱이 보낸 신분증(대표 신분증)을 RAON 응답의 `provider` 값에 따라 그 종류로 저장합니다. RAON 제공자 목록(2026-10-27)에서 comdl·comdc는 켜져 있고 comrc·comnh는 꺼져 있으며, 가져오기가 시작된 요청은 `comdl_v1.5`뿐이라 이것으로 요청합니다(`src/config/cardTypes.ts`의 `REQUEST_PROVIDER`). 신분증별로 정확히 어떤 `provider` 문자열이 오는지는 문서가 없어 `comrc_v1.5`와 `comrc`를 모두 받습니다.
 
 ## 라이선스
 

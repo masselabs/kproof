@@ -124,10 +124,10 @@ export const ko = {
     back: '뒤로',
     title: '모바일 신분증을\nKProof에 가져옵니다',
     intro: '모바일 신분증 앱에서 신분증 정보를 한 번 받아, 이 휴대폰에만 암호화해 둡니다.',
-    pick: '가져올 신분증',
+    pick: '가져올 수 있는 신분증',
+    representative: '모바일 신분증 앱에서 대표로 지정한 신분증이 들어옵니다. 다른 신분증을 가져오려면 그 앱에서 대표 신분증을 바꾼 뒤 다시 가져오세요.',
     sourceApp: '모바일 신분증 앱',
     already: '가져옴 · 다시 가져오면 바뀝니다',
-    unavailable: '아직 지원하지 않음 · 중계 서버(RAON)에서 막혀 있습니다',
     steps: [
       '모바일 신분증 앱이 열리면, 그 앱에서 제출에 동의합니다.',
       'KProof로 돌아오면 받은 정보를 확인합니다.',
@@ -180,6 +180,7 @@ export const ko = {
     comrc_v1_5: {name: '모바일 주민등록증', plain: '주민등록증', short: '주민'},
     comdl_v1_5: {name: '모바일 운전면허증', plain: '운전면허증', short: '면허'},
     comnh_v1_5: {name: '모바일 국가보훈등록증', plain: '국가보훈등록증', short: '보훈'},
+    comdc_v1_5: {name: '모바일 장애인등록증', plain: '장애인등록증', short: '장애인'},
     coresidence_v1_5: {name: '모바일 외국인등록증', plain: '외국인등록증', short: '외국인'},
   } as Record<string, {name: string; plain: string; short: string}>,
   errorModal: {
@@ -213,6 +214,6 @@ export const ko = {
     E6005: {title: '지원하지 않는 신분증입니다', body: 'KProof가 알지 못하는 신분증 종류입니다.'},
     E6006: {title: '신분증 정보가 모자랍니다', body: '받은 정보에 필요한 항목이 없거나 형식이 다릅니다. 아무것도 저장하지 않았습니다.'},
     E6007: {title: '다른 신분증이 왔습니다', body: '고른 신분증과 다른 종류가 왔습니다. 모바일 신분증 앱에서 대표 신분증을 확인하세요.'},
-    E6008: {title: '이 신분증은 아직 가져올 수 없습니다', body: '모바일 신분증 중계 서버(RAON)가 이 신분증 종류를 지원하지 않습니다. 운전면허증으로 가져오세요.'},
+    E6008: {title: '중계 서버가 요청을 받지 않았습니다', body: '모바일 신분증 중계 서버(RAON)가 가져오기 요청을 거절했습니다. 잠시 후 다시 시도하세요.'},
   },
 } as const;
