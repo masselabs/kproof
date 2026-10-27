@@ -25,12 +25,25 @@ KProof의 공개 코드를 모두 이 저장소 하나에 둡니다. 회로를 �
 ```
 app/        KProof 모바일 앱 (iOS, Android): 모바일 신분증을 읽고 기기에서 증명 생성
 sdk/        서비스용 SDK: 증명 요청을 만들고 받은 응답을 검증 (있음)
-circuits/   모바일 신분증 증명용 Noir 회로
+circuits/   모바일 신분증 증명용 Noir 회로 (있음: mdl/kr-ownership, kr-age, kr-region)
+mopro/      기기 안 증명기 Rust 크레이트. scripts/mopro_build.sh가 app/mopro_bindings를 만듦
 demo/       데모 페이지: 증명 요청을 만들고 응답을 기다림 (있음)
 ```
 
 서버(증명 요청 relay와 KOMSCO와 통신하는 SP 모듈)는 별도의 비공개 저장소
 `kproof-server`에 있습니다.
+
+## 증명기와 회로 빌드
+
+- 회로: 도구 버전은 `circuits/toolchain.env`에 고정(nargo 1.0.0-beta.19, bb
+  4.2.0-aztecnr-rc.2). `circuits/scripts/install-toolchain.sh` 후
+  `circuits/scripts/build.sh mdl/kr-age`. 커밋된 `target/` 파일은
+  zkproofport/circuits의 CI 빌드를 복사한 것입니다(커밋 973b9e9, `mdl/`은 Base Sepolia
+  검증 컨트랙트를 배포한 35a8df4 이후 바뀌지 않음). 로컬에서 다시 빌드하면 바이트코드와 검증
+  키는 같고, nargo가 `file_map`에 적는 절대 경로만 달라지므로 로컬 빌드는 커밋하지 않습니다.
+- 기기 안 증명기: `scripts/install-mopro-toolchain.sh` 후 `scripts/mopro_build.sh`.
+  네이티브 라이브러리를 `app/mopro_bindings/`에 쓰며, 이 바이너리는 빌드 결과물이라
+  커밋하지 않습니다.
 
 ## 링크
 

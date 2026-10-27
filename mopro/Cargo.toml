@@ -1,0 +1,48 @@
+
+[package]
+name = "proofport"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["lib", "cdylib", "staticlib"]
+
+# Adapters for different proof systems
+[features]
+default = ["uniffi"]
+uniffi = ["mopro-ffi/uniffi"]
+
+[dependencies]
+mopro-ffi = { git = "https://github.com/zkmopro/mopro.git", tag = "mopro-ffi-v0.3.7" }
+thiserror = "2.0.12"
+anyhow = "1.0.99"
+
+# CIRCOM_DEPENDENCIES
+# HALO2_DEPENDENCIES
+# NOIR_DEPENDENCIES
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.94"
+
+noir_rs = { package = "noir", git = "https://github.com/zkmopro/noir-rs", features = [
+    "barretenberg",
+], tag = "v1.0.0-beta.19" }
+    
+
+[build-dependencies]
+# CIRCOM_BUILD_DEPENDENCIES
+# HALO2_BUILD_DEPENDENCIES
+# NOIR_BUILD_DEPENDENCIES
+
+
+[dev-dependencies]
+mopro-ffi = { git = "https://github.com/zkmopro/mopro.git", tag = "mopro-ffi-v0.3.7", features = ["uniffi-tests"] }
+
+# CIRCOM_DEV_DEPENDENCIES
+# HALO2_DEV_DEPENDENCIES
+# NOIR_DEV_DEPENDENCIES
+
+serial_test = "3.0.0"
+    
+
+    

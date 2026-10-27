@@ -1,0 +1,14 @@
+# Rust build (24GB+)
+target/
+
+# Java
+*.jar
+build/
+
+# Mopro generated bindings (can be rebuilt with mopro build)
+MoproReactNativeBindings/
+MoproiOSBindings/
+MoproAndroidBindings/
+
+# Test artifacts
+*.log

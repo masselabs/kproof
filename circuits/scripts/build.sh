@@ -1,0 +1,327 @@
+#!/bin/bash
+
+# Generic Noir circuit build script using bb CLI + Keccak
+# EVM-optimized on-chain verification
+#
+# Usage:
+#   <circuits>/scripts/build.sh <circuit-dir>
+#   <circuits>/scripts/build.sh mdl/kr-age
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CIRCUITS_DIR="$(dirname "$SCRIPT_DIR")"
+
+if [ -z "$1" ]; then
+    echo "Usage: ${SCRIPT_DIR}/build.sh <circuit-dir>"
+    echo "Example: ${SCRIPT_DIR}/build.sh mdl/kr-age"
+    exit 1
+fi
+
+# Handle relative path (.) or circuit name
+if [ "$1" = "." ]; then
+    CIRCUIT_DIR="$(pwd)"
+else
+    CIRCUIT_DIR="${CIRCUITS_DIR}/$1"
+fi
+
+if [ ! -d "$CIRCUIT_DIR" ]; then
+    echo "Error: Circuit directory not found: $CIRCUIT_DIR"
+    exit 1
+fi
+
+cd "$CIRCUIT_DIR"
+
+CIRCUIT_DIR_NAME=$(basename "$CIRCUIT_DIR")
+
+echo "=================================================="
+echo "Building circuit: ${CIRCUIT_DIR_NAME}"
+echo "=================================================="
+echo ""
+
+# THE bb VERSION IS CHECKED, NOT JUST PRINTED.
+#
+# This line used to only echo the version, and on 2026-09-03 at 01:21 — the same
+# minute bb 1.2.0 was installed on a machine — proofs for all three Korea Mobile
+# ID circuits were generated with it and committed. Nothing complained. The
+# mistake surfaced only on 2026-09-04, when the pinned bb refused those proofs
+# with "Conversion error here usually implies some bad proof serde or parsing".
+#
+# WHY NOTHING CAUGHT IT. The two versions produce the SAME verification key —
+# measured, byte for byte, on mdl/kr-age. So the key cannot tell you which bb
+# made a proof. The only visible difference is the proof itself: 16256 bytes
+# from the pinned build, 16224 from 1.2.0, for the identical circuit and
+# witness. A 32-byte difference in an opaque blob is not something anyone spots.
+#
+# The version string is therefore the only cheap signal, and printing it puts
+# the burden on a person reading scrollback. Refusing is what a script is for.
+#
+# BB_ALLOW_VERSION_MISMATCH=1 exists for deliberately measuring another build —
+# comparing output across versions is a legitimate thing to do. It is not a way
+# past a surprise: anything it produces must be treated as scratch.
+# The pinned set lives in ../toolchain.env; read it rather than restate it.
+# shellcheck disable=SC1091
+. "${CIRCUITS_DIR}/toolchain.env"
+BB_VERSION_GOT=$(bb --version 2>/dev/null || echo "not found")
+NARGO_VERSION_GOT=$(nargo --version 2>/dev/null | sed -n 's/^nargo version = //p')
+echo "bb CLI version:    $BB_VERSION_GOT ($(command -v bb || echo 'not on PATH'))"
+echo "nargo version:     ${NARGO_VERSION_GOT:-not found} ($(command -v nargo || echo 'not on PATH'))"
+
+if [ "$BB_VERSION_GOT" != "$BB_VERSION" ] || [ "$NARGO_VERSION_GOT" != "$NARGO_VERSION" ]; then
+    if [ "${BB_ALLOW_VERSION_MISMATCH:-0}" = "1" ]; then
+        echo "  [!] Version mismatch allowed by BB_ALLOW_VERSION_MISMATCH=1."
+        echo "      Whatever this produces is scratch. Do not commit it."
+    else
+        echo ""
+        echo "[FAIL] Wrong toolchain. toolchain.env pins nargo ${NARGO_VERSION} and bb ${BB_VERSION}."
+        echo ""
+        echo "  The verification key can come out identical across bb versions while"
+        echo "  the PROOF format differs; that is how three circuits ended up with"
+        echo "  unverifiable proofs committed on 2026-09-03. So this refuses."
+        echo ""
+        echo "  Install the pinned pair:  scripts/install-toolchain.sh"
+        echo "  To compare versions on purpose: BB_ALLOW_VERSION_MISMATCH=1"
+        exit 1
+    fi
+fi
+echo ""
+
+rm -f ./target/*.json ./target/*.sol
+
+# Do NOT `rm -rf` ./target/vk or ./target/proof, and do not delete the files bb
+# writes inside them either — bb truncates vk, vk_hash, proof and public_inputs
+# in place, so nothing stale survives a successful build. bb runs in a container
+# over a bind-mounted host directory (Colima/lima on this machine); when the host
+# removes a path that a container wrote into, the next container still resolves
+# the old, now-deleted inode for it and dies with
+#   Failed to open data file for writing: ./target/vk/vk (No such file or directory)
+# Measured on kr-age, 6 consecutive builds each: `rm -rf ./target/vk` + let bb
+# create it = 2 of 3 builds fail; `rm -rf` + host mkdir = 1 of 2 fail. Keeping the
+# directory fixed vk and moved the identical failure onto ./target/proof, the
+# other directory that was being `rm -rf`'d — so neither is removed now. Keeping
+# target/vk also preserves the committed target/vk/SHA256SUMS digests, which the
+# old `rm -rf` deleted on every build.
+mkdir -p ./target/vk ./target/proof
+
+# Detect whether this circuit ships a post-build hook (e.g. acceptance
+# tests). If so, the hook OWNS all witness/prove/verify steps — the
+# generic Prover.toml flow below is skipped to avoid double-running them
+# against a stale single fixture.
+HAS_POST_BUILD_HOOK=false
+if [ -z "${SKIP_POST_BUILD:-}" ] && [ -f "$CIRCUIT_DIR/scripts/post-build.sh" ]; then
+    HAS_POST_BUILD_HOOK=true
+fi
+
+# 1. Compile Noir circuit
+echo "1. Compiling Noir circuit..."
+nargo compile
+echo "Compile complete"
+echo ""
+
+# Find compiled JSON file
+CIRCUIT_JSON=$(find ./target -maxdepth 1 -name "*.json" -type f | head -1)
+if [ -z "$CIRCUIT_JSON" ]; then
+    echo "Error: No compiled JSON found in ./target"
+    exit 1
+fi
+
+CIRCUIT_NAME=$(basename "$CIRCUIT_JSON" .json)
+echo "Circuit name: $CIRCUIT_NAME"
+echo ""
+
+# NOTE ON THE PATHS INSIDE THE ARTIFACT
+#
+# nargo records the absolute path of every source file it read into the
+# compiled .json (`file_map[*].path`), so two checkouts of the same commit
+# produce byte-different artifacts purely because the accounts differ. The
+# committed files carry $HOME/...; a rebuild anywhere else writes its own.
+# bytecode, abi, names and noir_version are identical — only file_map,
+# debug_symbols and hash move.
+#
+# Do NOT paper over this by rewriting the paths after compiling. That was tried
+# on 2026-09-04 and removed: the artifacts are meant to be produced by CI
+# (.github/workflows/build-circuits.yml), which always builds at the same path,
+# so there is nothing to normalize. Rewriting them locally would only make a
+# local build look like a CI build while being neither.
+
+# 2. Generate Verification Key (Keccak oracle hash + ZK)
+echo "2. Generating Verification Key (Keccak + ZK)..."
+bb write_vk \
+  -b "$CIRCUIT_JSON" \
+  -o ./target/vk \
+  -t evm
+echo "VK generation complete"
+echo ""
+
+# 3. Generate Witness (only if Prover.toml exists AND no hook owns testing)
+if [ "$HAS_POST_BUILD_HOOK" = false ] && [ -f "./Prover.toml" ]; then
+    echo "3. Generating Witness..."
+    nargo execute witness
+    mkdir -p ./target/proof
+    mv ./target/witness.gz ./target/proof/
+    echo "Witness generation complete"
+    echo ""
+
+    # 4. Generate Proof (Keccak oracle hash + ZK)
+    echo "4. Generating Proof (Keccak + ZK)..."
+    bb prove \
+      -b "$CIRCUIT_JSON" \
+      -w ./target/proof/witness.gz \
+      -k ./target/vk/vk \
+      -o ./target/proof \
+      -t evm
+    PROOF_SIZE=$(wc -c < ./target/proof/proof)
+    echo "Proof generation complete: $PROOF_SIZE bytes"
+    echo ""
+
+    # 5. Convert Proof to hex
+    echo "5. Converting Proof to hex..."
+    xxd -p ./target/proof/proof | tr -d '\n' > ./target/proof/proof.hex
+    echo "0x$(cat ./target/proof/proof.hex)" > ./target/proof/proof.hex
+    echo "Hex conversion complete"
+    echo ""
+
+    # 6. Verify Proof (Keccak oracle hash + ZK)
+    echo "6. Verifying Proof (Keccak + ZK)..."
+    bb verify \
+      -p ./target/proof/proof \
+      -i ./target/proof/public_inputs \
+      -k ./target/vk/vk \
+      -t evm
+    echo "Verification successful!"
+    echo ""
+else
+    if [ "$HAS_POST_BUILD_HOOK" = true ]; then
+        echo "3-6. Skipping witness/proof generation (post-build hook owns it)"
+    else
+        echo "3-6. Skipping witness/proof generation (no Prover.toml)"
+    fi
+    echo ""
+    PROOF_SIZE="N/A"
+fi
+
+# 7. Generate Solidity Verifier (output to target/)
+# Convert snake_case to PascalCase (e.g., zk_coinbase_attestor -> ZkCoinbaseAttestor)
+VERIFIER_NAME=$(echo "$CIRCUIT_NAME" | awk -F'_' '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1' OFS='')
+VERIFIER_FILE="./target/${VERIFIER_NAME}.sol"
+
+echo "7. Generating Solidity Verifier (Keccak + ZK)..."
+bb write_solidity_verifier \
+  -k ./target/vk/vk \
+  -o "$VERIFIER_FILE" \
+  -t evm
+VERIFIER_LINES=$(wc -l < "$VERIFIER_FILE")
+echo "Verifier generation complete: $VERIFIER_LINES lines"
+echo ""
+
+# ---------------------------------------------------------------------------
+# STEP 8: the reference string and the published digests.
+#
+# These are not optional extras. A device that cannot fetch a .srs cannot
+# prove; one that cannot fetch a vk cannot verify what it proved; and a
+# circuit file with no published digest is checked by BYTE COUNT alone on the
+# device, which is the weakness the digests exist to close.
+#
+# They used to be two separate commands somebody had to remember after every
+# build. A circuit once shipped its first proof with neither, and nothing
+# said so -- the build printed "Build complete" over the gap. So the build
+# does them, and fails if it cannot.
+# ---------------------------------------------------------------------------
+
+echo "8. Generating SRS (reference string)..."
+# A reference string is reused only if the noir-rs that wrote it is the one
+# toolchain.env pins AND it was written for this circuit's bytecode: its size
+# follows the circuit's size, and a stale one survives either change silently
+# because the file still exists. (Keyed on the toolchain alone, the OIDC v2
+# build on 2026-10-27 reused v1's 2^18 file for a 2^19 circuit.)
+SRS_STAMP="./target/${CIRCUIT_NAME}.srs.toolchain"
+BYTECODE_SHA=$(python3 -I -c 'import json,sys,hashlib; print(hashlib.sha256(json.load(open(sys.argv[1]))["bytecode"].encode()).hexdigest())' "$CIRCUIT_JSON")
+SRS_STAMP_WANT="${NOIR_RS_TAG} bytecode-sha256:${BYTECODE_SHA}"
+if [ -f "./target/${CIRCUIT_NAME}.srs" ] && [ "$(cat "$SRS_STAMP" 2>/dev/null)" != "$SRS_STAMP_WANT" ]; then
+    echo "SRS was written for: $(cat "$SRS_STAMP" 2>/dev/null || echo 'an unrecorded noir-rs / circuit')"
+    echo "  regenerating for:  ${SRS_STAMP_WANT}"
+    rm -f "./target/${CIRCUIT_NAME}.srs"
+fi
+if [ -f "./target/${CIRCUIT_NAME}.srs" ]; then
+    echo "SRS already present: $(wc -c < "./target/${CIRCUIT_NAME}.srs") bytes"
+else
+    SRS_TOOL="${SCRIPT_DIR}/generate_srs.sh"
+    # The generator takes the path under circuits/ (mdl/kr-age), not the bare
+    # folder name: given "kr-age" it looks for circuits/kr-age and fails. That
+    # stayed hidden while every circuit already had a .srs to reuse.
+    CIRCUIT_REL_DIR="${CIRCUIT_DIR#"${CIRCUITS_DIR}"/}"
+    if ! "$SRS_TOOL" "$CIRCUIT_REL_DIR"; then
+        echo "Error: SRS generation failed for ${CIRCUIT_DIR_NAME}." >&2
+        echo "  Without it no device can prove this circuit, so this build is not" >&2
+        echo "  publishable. Fix the cause rather than skipping this step." >&2
+        exit 1
+    fi
+fi
+if [ ! -f "./target/${CIRCUIT_NAME}.srs" ]; then
+    echo "Error: generate_srs.sh reported success but ./target/${CIRCUIT_NAME}.srs" >&2
+    echo "  does not exist. Trusting an exit code over the artefact is how this" >&2
+    echo "  repository shipped a build with no reference string." >&2
+    exit 1
+fi
+echo "$SRS_STAMP_WANT" > "$SRS_STAMP"
+echo "SRS ready: $(wc -c < "./target/${CIRCUIT_NAME}.srs") bytes"
+echo ""
+
+echo "9. Publishing digests..."
+if ! "${SCRIPT_DIR}/write-digests.sh"; then
+    echo "Error: digest publication failed." >&2
+    echo "  The app verifies every downloaded file against these; without them it" >&2
+    echo "  falls back to comparing byte counts." >&2
+    exit 1
+fi
+for manifest in "./target/SHA256SUMS" "./target/vk/SHA256SUMS"; do
+    if [ ! -f "$manifest" ]; then
+        echo "Error: $manifest was not written." >&2
+        exit 1
+    fi
+done
+echo "Digests published"
+echo ""
+
+echo "=================================================="
+echo "Build complete: ${CIRCUIT_DIR_NAME}"
+echo "=================================================="
+echo ""
+echo "Generated files in ${CIRCUIT_DIR}/target/:"
+echo "  - ${CIRCUIT_NAME}.json (circuit)"
+echo "  - vk/vk (verification key)"
+echo "  - ${VERIFIER_NAME}.sol ($VERIFIER_LINES lines)"
+echo "  - ${CIRCUIT_NAME}.srs ($(wc -c < "./target/${CIRCUIT_NAME}.srs") bytes)"
+echo "  - SHA256SUMS, vk/SHA256SUMS (published digests)"
+if [ -f "./Prover.toml" ]; then
+    echo "  - proof/ ($PROOF_SIZE bytes)"
+    echo "    - witness.gz (private inputs)"
+    echo "    - proof, public_inputs, proof.hex"
+fi
+echo ""
+echo "bb CLI version: $BB_VERSION"
+echo "Oracle Hash: Keccak (EVM-optimized)"
+
+# ---------------------------------------------------------------------------
+# Per-circuit post-build hook
+#
+# A circuit can ship a `scripts/post-build.sh` to run extra acceptance
+# tests (e.g. edge-case proofs). The hook runs after the standard build
+# pipeline; if it exits non-zero, the build itself is considered FAILED.
+#
+# To prevent infinite recursion when the hook re-invokes this script,
+# SKIP_POST_BUILD=1 is propagated automatically.
+# ---------------------------------------------------------------------------
+if [ -z "${SKIP_POST_BUILD:-}" ] && [ -f "$CIRCUIT_DIR/scripts/post-build.sh" ]; then
+    echo ""
+    echo "=================================================="
+    echo "Running post-build hook: scripts/post-build.sh"
+    echo "=================================================="
+    if ! SKIP_POST_BUILD=1 bash "$CIRCUIT_DIR/scripts/post-build.sh"; then
+        echo ""
+        echo "=================================================="
+        echo "BUILD FAILED — post-build hook reported errors"
+        echo "=================================================="
+        exit 1
+    fi
+fi

@@ -4,12 +4,14 @@
  * name, never mapped to another circuit.
  *
  * Public inputs are a flat array of 32-byte words fixed by each circuit's ABI
- * (`circuits/mdl/kr-*` in zkproofport/circuits): every `[u8; 32]` is 32 words
+ * (`circuits/mdl/kr-*` in this repository): every `[u8; 32]` is 32 words
  * of one byte each, every `u8`/`u32` is one word.
  */
 export type CircuitId = 'mdl_kr_ownership' | 'mdl_kr_age' | 'mdl_kr_region';
 
 export interface CircuitLayout {
+  /** The circuit's directory under circuits/ (its compiled files are in <dir>/target). */
+  dir: string;
   /** Total number of public input words. */
   publicInputs: number;
   /** Word offsets of each named public input. */
@@ -21,18 +23,21 @@ export interface CircuitLayout {
 
 export const CIRCUITS: Readonly<Record<CircuitId, CircuitLayout>> = {
   mdl_kr_ownership: {
+    dir: 'mdl/kr-ownership',
     publicInputs: 97,
     scope: 0,
     nullifier: 32,
     extra: { discloseFlags: { offset: 64, words: 1 }, ownerCommit: { offset: 65, words: 32 } },
   },
   mdl_kr_age: {
+    dir: 'mdl/kr-age',
     publicInputs: 66,
     scope: 0,
     nullifier: 32,
     extra: { ageThreshold: { offset: 64, words: 1 }, currentYear: { offset: 65, words: 1 } },
   },
   mdl_kr_region: {
+    dir: 'mdl/kr-region',
     publicInputs: 96,
     scope: 0,
     nullifier: 32,
