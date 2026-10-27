@@ -41,5 +41,5 @@ circuits/   모바일 신분증 증명용 Noir 회로
 
 ## 연락처
 
-KProof는 마쎄랩스(Masse Labs, GitHub [masselabs](https://github.com/masselabs))가 만듭니다.
+KProof는 마세랩스(Masse Labs, GitHub [masselabs](https://github.com/masselabs))가 만듭니다.
 문의나 제보는 이 저장소에 issue를 열어 주십시오.
