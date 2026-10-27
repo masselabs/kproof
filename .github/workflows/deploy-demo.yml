@@ -49,6 +49,8 @@ jobs:
         working-directory: demo
     steps:
       - name: Only main deploys
+        # Runs before checkout, when demo/ does not exist yet.
+        working-directory: ${{ github.workspace }}
         run: |
           if [ "$GITHUB_REF" != "refs/heads/main" ]; then
             echo "Refusing to deploy $GITHUB_REF: only refs/heads/main is deployed." >&2
