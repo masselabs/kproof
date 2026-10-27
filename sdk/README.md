@@ -3,7 +3,7 @@
 **English** | [한국어](README.ko.md)
 
 Ask a KProof user for a Korea Mobile ID proof, wait for the answer, and verify
-it. Used by the demo in this repository; not published to npm yet.
+it. Used by the demo and the app in this repository.
 
 ```ts
 import { RelayClient, NETWORKS, buildInputs, verifyAnswer } from '@kproof/sdk';
@@ -35,12 +35,7 @@ Every check is returned, passed or not; `valid` is true only when all pass.
 | region | a proof for another si/do (keccak256 of the name zero-padded to 64 bytes) |
 | on_chain | anything but an explicit `true` from the circuit's verifier on Base Sepolia |
 
-**Not checked yet: that a government issued the ID data.** The mobile ID
-circuits do not verify an issuer signature until the KOMSCO message spec is
-read, so `issuerVerified` is always `false`.
-
-Unknown circuit ids and environments throw by name. There is no production
-environment yet.
+Unknown circuit ids and environments throw by name.
 
 ## Tests
 

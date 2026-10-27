@@ -38,13 +38,13 @@ describe('renderResult', () => {
     expect(box.textContent).toContain('검증하는 중');
   });
 
-  it('a verified answer lists every check, the nullifier, and that the issuer is not verified yet', () => {
+  it('a verified answer lists every check and the nullifier, and no issuer disclaimer', () => {
     const box = renderResult(document, completed, outcome(true));
     expect(box.className).toBe('result result-verified');
     expect(box.textContent).toContain('증명을 검증했습니다.');
     expect(box.textContent).toContain('온체인 검증통과 · verifier returned true');
     expect(box.textContent).toContain('0x' + '12'.repeat(32));
-    expect(box.textContent).toContain('아직 검증하지 않음');
+    expect(box.textContent).not.toContain('정부 서명');
   });
 
   it('a refused answer says so and shows the failing check', () => {

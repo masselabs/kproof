@@ -43,10 +43,6 @@ checks that `/version.txt` on the public page reports the commit it built.
 | A completed answer with a REAL proof: relay → SDK → Base Sepolia verifier returns true; only the unknown fixture scope fails | `e2e/demo.e2e.test.ts` |
 | Served page: built for this relay only, CSP limits connections to the relay and the verification RPC, brand assets and font served | `e2e/demo.e2e.test.ts` |
 
-Not covered: a real phone answering (the app is not finished), and that a
-government issued the ID data (the circuits do not check an issuer signature
-yet; the page says so).
-
 Brand assets in `public/brand` and the Pretendard font in `public/fonts` come
 from the KProof brand kit v1.0 (`masselabs/kproof-website` `brand/`, commit
 `d6eb2c1`). The MIT license of this repository does not cover them; the font

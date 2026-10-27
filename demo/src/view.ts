@@ -57,7 +57,6 @@ export function renderResult(doc: Document, s: RequestStatus, outcome?: VerifyOu
     if (outcome) {
       for (const c of outcome.checks) entries.push([checkLabel(c.name), `${c.ok ? '통과' : '실패'} · ${c.detail}`]);
       if (outcome.nullifier) entries.push(['중복 확인 값', outcome.nullifier]);
-      entries.push(['정부 서명', '아직 검증하지 않음 (조폐공사 규격 연동 전)']);
     }
     box.append(rows(doc, entries));
   } else if (s.error || s.errorCode) {

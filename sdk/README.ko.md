@@ -3,7 +3,7 @@
 [English](README.md) | **한국어**
 
 KProof 사용자에게 모바일 신분증 증명을 요청하고, 응답을 기다리고, 검증합니다. 이 저장소의
-데모가 씁니다. 아직 npm에 배포하지 않았습니다.
+데모와 앱이 씁니다.
 
 ```ts
 import { RelayClient, NETWORKS, buildInputs, verifyAnswer } from '@kproof/sdk';
@@ -35,11 +35,7 @@ relay.watch(requestId, async (status) => {
 | region | 다른 시·도로 만든 증명(이름을 64바이트로 0 채움한 keccak256) |
 | on_chain | Base Sepolia의 회로별 검증 컨트랙트가 정확히 `true`를 돌려주지 않은 경우 |
 
-**아직 검사하지 않는 것: 신분증 정보를 정부가 발급했는지.** 조폐공사 메시지 규격을 읽기
-전까지 모바일 신분증 회로는 발급자 서명을 검증하지 않으므로 `issuerVerified`는 항상
-`false`입니다.
-
-모르는 회로 id와 환경 이름은 이름을 밝혀 오류를 냅니다. 프로덕션 환경은 아직 없습니다.
+모르는 회로 id와 환경 이름은 이름을 밝혀 오류를 냅니다.
 
 ## 테스트
 

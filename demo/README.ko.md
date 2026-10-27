@@ -39,9 +39,6 @@ relay를 상대로 `e2e/`를 실행합니다. 앱 쪽은 앱과 똑같이 relay�
 | 실제 증명을 담은 완료 응답: relay → SDK → Base Sepolia 검증 컨트랙트가 true; 알 수 없는 견본 scope만 실패 | `e2e/demo.e2e.test.ts` |
 | 서빙된 페이지: 이 relay 전용으로 빌드됨, CSP가 연결 대상을 relay와 검증 RPC로 제한, 브랜드 파일과 폰트 제공 | `e2e/demo.e2e.test.ts` |
 
-다루지 않는 것: 실제 휴대폰의 응답(앱이 아직 완성 전), 신분증 정보를 정부가 발급했는지(회로가
-아직 발급자 서명을 검사하지 않음, 페이지에 표시함).
-
 `public/brand`의 브랜드 파일과 `public/fonts`의 Pretendard 폰트는 KProof 브랜드 킷 v1.0
 (`masselabs/kproof-website` `brand/`, 커밋 `d6eb2c1`)에서 가져왔습니다. 이 저장소의 MIT
 라이선스는 이 파일들에 적용되지 않으며, 폰트는 SIL Open Font License(`public/fonts/OFL.txt`)를
