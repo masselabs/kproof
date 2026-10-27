@@ -72,6 +72,21 @@ whose digest differs is deleted and the proof stops; there is no branch, no
 checks against were deployed; each verifier's bytecode embeds the `vk_hash` of
 the pinned key.
 
+## Physical iPhone
+
+```bash
+# ASC_KEY_ID, ASC_ISSUER_ID, ASC_API_KEY (base64 .p8) in the environment
+scripts/build-device.sh <device-udid> staging
+```
+
+`scripts/dev-profile.py` (called by the build script) registers the app id
+`com.masselabs.kproof` on team R4G32CVY29 and installs the "KProof
+Development" profile for that device, reusing what already exists. The device
+must already be registered on the team. The build is Release (the JS bundle is
+embedded, no Metro) and is checked for its signature and bundle before
+`devicectl` installs it. First run 2026-10-27: iPhone 16 Pro Max, profile valid
+to 2027-10-27.
+
 ## Environments
 
 `src/config/env.ts` holds one row per environment (`development`, `staging`):

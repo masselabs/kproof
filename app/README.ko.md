@@ -65,6 +65,19 @@ barretenberg)로 빌드하고 `../scripts/sync-mopro-bindings.sh`가 여기에 �
 바이트 단위로 같고, SDK가 확인하는 Base Sepolia 검증 컨트랙트가 그 커밋에서 배포되었습니다.
 각 검증 컨트랙트의 바이트코드에 고정된 키의 `vk_hash`가 들어 있습니다.
 
+## 실제 iPhone
+
+```bash
+# 환경 변수에 ASC_KEY_ID, ASC_ISSUER_ID, ASC_API_KEY(base64로 인코딩한 .p8)
+scripts/build-device.sh <기기-UDID> staging
+```
+
+빌드 스크립트가 부르는 `scripts/dev-profile.py`는 팀 R4G32CVY29에 앱 ID
+`com.masselabs.kproof`를 등록하고, 그 기기용 "KProof Development" 프로필을 설치합니다.
+이미 있는 것은 다시 씁니다. 기기는 팀에 미리 등록되어 있어야 합니다. 빌드는 Release(JS
+번들 포함, Metro 불필요)이고, 서명과 번들을 확인한 뒤 `devicectl`로 설치합니다. 처음 실행:
+2026-10-27, iPhone 16 Pro Max, 프로필 유효기간 2027-10-27.
+
 ## 환경
 
 `src/config/env.ts`에 환경(`development`, `staging`)마다 한 행이 있습니다: relay
