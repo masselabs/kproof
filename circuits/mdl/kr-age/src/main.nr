@@ -17,13 +17,13 @@ use dep::mdl_kr_common::{
 
 fn main(
     // ============ Public Inputs ============
-    // TODO(HS256): Re-enable when RAON registration provides the RP shared
+    // TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
     // secret. Currently disabled because no off-chain HS256 verifier exists,
     // so cx_integrity_root cannot anchor anything meaningfully.
     // signal_hash:       pub [u8; 32],
     scope:             pub [u8; 32],
     nullifier_value:   pub [u8; 32],
-    // TODO(HS256): Re-enable when RAON registration provides the RP shared
+    // TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
     // secret. Currently disabled because no off-chain HS256 verifier exists,
     // so cx_integrity_root cannot anchor anything meaningfully.
     // cx_integrity_root: pub [u8; 32],
@@ -31,7 +31,7 @@ fn main(
     current_year:      pub u32,
     // ============ Private Inputs ============
     ci:                [u8; 88],
-    // TODO(HS256): Re-enable when RAON registration provides the RP shared
+    // TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
     // secret. Currently disabled because no off-chain HS256 verifier exists,
     // so cx_integrity_root cannot anchor anything meaningfully.
     // cx_jti:            [u8; 40],
@@ -39,7 +39,7 @@ fn main(
     birth_date:        [u8; 8],
     // address:           [u8; 256],  // not needed for nullifier in v4
 ) {
-    // TODO(HS256): Re-enable when RAON registration provides the RP shared
+    // TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
     // secret. Currently disabled because no off-chain HS256 verifier exists,
     // so cx_integrity_root cannot anchor anything meaningfully.
     // verify_cx_integrity(cx_jti, cx_pri, cx_integrity_root);

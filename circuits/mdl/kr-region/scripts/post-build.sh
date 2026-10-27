@@ -103,7 +103,7 @@ run_case "B_no_whitespace"       FAIL --region "경기도" --address-override "�
 #
 # NOTE (v4): C_corrupt_integrity and C_corrupt_signal_hash are REMOVED
 # because cx_integrity_root and signal_hash are no longer circuit inputs
-# (commented out pending RAON RP registration / HS256 secret provisioning).
+# (commented out pending issuer HMAC secret provisioning).
 # ─────────────────────────────────────────────────────────────────────────
 echo ""
 echo "  Group C — single-assertion tamper"

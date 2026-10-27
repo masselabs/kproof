@@ -6,7 +6,7 @@
 // The previous formula used a coinbase_libs helper that required signal_hash
 // (anti-replay) and a self_id_20 derived from ci || jti || pri || birth || address.
 // Both of those require HS256 session anchoring (cx_integrity_root, cx_jti, cx_pri)
-// which we cannot verify until RAON registration provides the RP shared secret.
+// which we cannot verify until the issuer HMAC secret is provisioned.
 // The new formula is simpler and does not depend on HS256 at all.
 
 use dep::keccak256::keccak256;
@@ -15,7 +15,7 @@ use dep::keccak256::keccak256;
 // All circuits and external provers (mobile mopro, gen_prover_toml.mjs)
 // MUST follow these sizes exactly.
 global CI_LEN: u32      = 88;
-// TODO(HS256): Re-enable when RAON registration provides the RP shared
+// TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
 // secret. Currently disabled because no off-chain HS256 verifier exists,
 // so cx_integrity_root cannot anchor anything meaningfully.
 // global JTI_LEN: u32     = 40;
@@ -26,12 +26,12 @@ global REGION_MAX: u32  = 64;
 global BIRTH_LEN: u32   = 8;
 global ADDRESS_MAX: u32 = 256;
 
-// TODO(HS256): Re-enable when RAON registration provides the RP shared
+// TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
 // secret. Currently disabled because no off-chain HS256 verifier exists,
 // so cx_integrity_root cannot anchor anything meaningfully.
 //
 // keccak256(jti || pri) == public cx_integrity_root.
-// OmniOne CX returns jti+pri inside an HS256-signed envelope; this anchor
+// The mobile ID answer carries jti+pri inside an HS256-signed envelope; this anchor
 // links the proof to a specific CX session without exposing jti/pri.
 //
 // pub fn verify_cx_integrity(
@@ -50,14 +50,14 @@ global ADDRESS_MAX: u32 = 256;
 //     assert(computed == cx_integrity_root, "CX integrity mismatch");
 // }
 
-// TODO(HS256): Re-enable when RAON registration provides the RP shared
+// TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
 // secret. Currently disabled because no off-chain HS256 verifier exists,
 // so cx_integrity_root cannot anchor anything meaningfully.
 //
 // mdl_commit = keccak(ci || jti || pri || birth || address) - 436 bytes -
 // then take the first 20 bytes as the self_id slot for the coinbase_libs
 // nullifier helper. Birth and address are included so a prover cannot
-// swap them after the OmniOne CX call.
+// swap them after the mobile ID import.
 //
 // pub fn derive_self_id_20(
 //     ci:      [u8; 88],
@@ -100,7 +100,7 @@ global ADDRESS_MAX: u32 = 256;
 //   - Same user (ci) + diff scope  -> different nullifier
 //   - Different user (ci) + same scope -> different nullifier
 //
-// `ci` is the Connecting Information issued by RAON --
+// `ci` is the Connecting Information issued for the person --
 // a pseudonymous identifier stable across provider types for the same
 // natural person.
 pub fn verify_nullifier(ci: [u8; 88], scope: [u8; 32], nullifier: [u8; 32]) {

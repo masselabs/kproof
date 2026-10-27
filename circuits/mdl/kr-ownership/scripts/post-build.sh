@@ -96,7 +96,7 @@ done
 #
 # NOTE (v4): B_corrupt_integrity and B_corrupt_signal_hash are REMOVED
 # because cx_integrity_root and signal_hash are no longer circuit inputs
-# (commented out pending RAON RP registration / HS256 secret provisioning).
+# (commented out pending issuer HMAC secret provisioning).
 # ─────────────────────────────────────────────────────────────────────────
 echo ""
 echo "  Group B — single-assertion tamper"

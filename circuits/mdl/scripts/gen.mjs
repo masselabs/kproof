@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generate Prover.toml for mdl_kr_ownership / mdl_kr_age / mdl_kr_region
-// from an OmniOne CX response. Writes Prover.toml directly into the
+// from an mobile ID answer. Writes Prover.toml directly into the
 // matching circuit directory.
 //
 // Usage:
@@ -9,7 +9,7 @@
 //   node scripts/gen.mjs --circuit region    [options]
 //
 // Options:
-//   --input <oacx-response.json>  use a real OmniOne CX response (else demo)
+//   --input <id-answer.json>  use a real mobile ID answer (else demo)
 //   --scope <STR>                 default "openstoa:login:v1"
 //   --signal-hash-hex <0x...>     INERT in v4 — accepted but value is dropped.
 //                                 Used by D1 re-login determinism test to prove
@@ -34,11 +34,11 @@
 // NOTE (v4 — HS256 path dormant):
 //   --corrupt-integrity and --corrupt-signal-hash are accepted as INERT flags
 //   (parsed but not emitted into Prover.toml) because signal_hash and
-//   cx_integrity_root have been commented out of the v4 circuits pending RAON
+//   cx_integrity_root have been commented out of the v4 circuits pending the issuer HMAC secret
 //   RP registration. Keep the flags to avoid breaking existing invocations.
 //
 // TODO(HS256): Re-enable --corrupt-integrity / --corrupt-signal-hash emission
-// when RAON registration provides the RP shared secret.
+// when the issuer HMAC secret is provisioned (RP shared secret.
 
 import sha3 from 'js-sha3';
 const { keccak256 } = sha3;
@@ -85,7 +85,7 @@ const CURR_YEAR   = parseInt(typeof args['current-year']  === 'string' ? args['c
 const AGE_THRESH  = parseInt(typeof args['age-threshold'] === 'string' ? args['age-threshold'] : '19',   10);
 
 // INERT in v4 — accepted for CLI compatibility + D1 regression guard.
-// TODO(HS256): Re-enable when RAON registration provides the RP shared
+// TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
 // secret. Currently disabled because no off-chain HS256 verifier exists,
 // so cx_integrity_root cannot anchor anything meaningfully.
 // const CORRUPT_INTEGRITY   = args['corrupt-integrity']   === true;  // INERT
@@ -129,9 +129,9 @@ const DEMO_RESPONSE = {
 };
 
 const inputPath = typeof args['input'] === 'string' ? args['input'] : null;
-const oacx = inputPath ? JSON.parse(readFileSync(inputPath, 'utf8')).data : { ...DEMO_RESPONSE };
+const answer = inputPath ? JSON.parse(readFileSync(inputPath, 'utf8')).data : { ...DEMO_RESPONSE };
 if (ADDRESS_OVERRIDE !== null) {
-  oacx.address = ADDRESS_OVERRIDE;
+  answer.address = ADDRESS_OVERRIDE;
 }
 
 // ───────────────────────────────────────────────
@@ -150,24 +150,24 @@ const tomlArray = (bytes) => '[' + Array.from(bytes).join(', ') + ']';
 // ───────────────────────────────────────────────
 // Buffers (must match mdl_kr_common globals)
 // ───────────────────────────────────────────────
-let ci     = padZero(oacx.ci,    88, 'utf8');
-// TODO(HS256): Re-enable when RAON registration provides the RP shared
+let ci     = padZero(answer.ci,    88, 'utf8');
+// TODO(HS256): Re-enable when the issuer HMAC secret is provisioned (RP shared
 // secret. Currently disabled because no off-chain HS256 verifier exists,
 // so cx_integrity_root cannot anchor anything meaningfully.
-// const jti  = padZero(oacx.jti,   40, 'utf8');
-// const pri  = padZero(oacx.pri,   44, 'utf8');
-const name    = padZero(oacx.name,  64, 'utf8');
-const telno   = padZero(oacx.telno, 16, 'utf8');
-const sex     = oacx.sex && oacx.sex.length > 0 ? oacx.sex.charCodeAt(0) : 0;
-const birth   = padZero(oacx.birth, 8,  'utf8');
-const address = padZero(oacx.address || '', 256, 'utf8');
+// const jti  = padZero(answer.jti,   40, 'utf8');
+// const pri  = padZero(answer.pri,   44, 'utf8');
+const name    = padZero(answer.name,  64, 'utf8');
+const telno   = padZero(answer.telno, 16, 'utf8');
+const sex     = answer.sex && answer.sex.length > 0 ? answer.sex.charCodeAt(0) : 0;
+const birth   = padZero(answer.birth, 8,  'utf8');
+const address = padZero(answer.address || '', 256, 'utf8');
 const targetRegion = padZero(REGION, 64, 'utf8');
 
 // "Expected" overrides only affect the off-circuit owner_commit hash.
-const expectedNameStr  = EXPECTED_NAME_OVERRIDE  ?? oacx.name;
-const expectedBirthStr = EXPECTED_BIRTH_OVERRIDE ?? oacx.birth;
-const expectedSexStr   = EXPECTED_SEX_OVERRIDE   ?? (oacx.sex ?? '');
-const expectedTelnoStr = EXPECTED_TELNO_OVERRIDE ?? oacx.telno;
+const expectedNameStr  = EXPECTED_NAME_OVERRIDE  ?? answer.name;
+const expectedBirthStr = EXPECTED_BIRTH_OVERRIDE ?? answer.birth;
+const expectedSexStr   = EXPECTED_SEX_OVERRIDE   ?? (answer.sex ?? '');
+const expectedTelnoStr = EXPECTED_TELNO_OVERRIDE ?? answer.telno;
 const expected_name_buf  = padZero(expectedNameStr,  64, 'utf8');
 const expected_birth_buf = padZero(expectedBirthStr, 8,  'utf8');
 const expected_telno_buf = padZero(expectedTelnoStr, 16, 'utf8');
@@ -261,7 +261,7 @@ if (CORRUPT_ADDRESS_TOKEN) {
 
 let outCurrYear = CURR_YEAR;
 if (YEAR_BEFORE_BIRTH) {
-  const birthYear = parseInt(oacx.birth.slice(0, 4), 10);
+  const birthYear = parseInt(answer.birth.slice(0, 4), 10);
   outCurrYear = birthYear - 1;
 }
 
@@ -270,17 +270,17 @@ if (YEAR_BEFORE_BIRTH) {
 // ───────────────────────────────────────────────
 const lines = [
   `# Auto-generated by scripts/gen.mjs --circuit ${CIRCUIT} (v4)`,
-  `# Demo: Korean mobile driver license (${oacx.name})`,
+  `# Demo: Korean mobile driver license (${answer.name})`,
   `# v4 nullifier: keccak(keccak(ci) || scope) — signal_hash and cx_integrity_root`,
-  `# are commented out pending RAON RP registration (HS256 path dormant).`,
+  `# are commented out (HS256 path dormant).`,
   '',
   '# ============ Public Inputs ============',
-  // TODO(HS256): Re-enable signal_hash emission when RAON registration provides
+  // TODO(HS256): Re-enable signal_hash emission when the issuer HMAC secret is provisioned:
   // the RP shared secret.
   // `signal_hash       = ${tomlArray(signal_hash)}`,
   `scope             = ${tomlArray(scope)}`,
   `nullifier_value   = ${tomlArray(nullifier_value)}`,
-  // TODO(HS256): Re-enable cx_integrity_root emission when RAON registration
+  // TODO(HS256): Re-enable cx_integrity_root emission when the issuer registration
   // provides the RP shared secret.
   // `cx_integrity_root = ${tomlArray(cx_integrity_root)}`,
 ];
@@ -298,7 +298,7 @@ if (CIRCUIT === 'ownership') {
 lines.push('');
 lines.push('# ============ Private Inputs ============');
 lines.push(`ci          = ${tomlArray(ci)}`);
-// TODO(HS256): Re-enable cx_jti / cx_pri emission when RAON registration
+// TODO(HS256): Re-enable cx_jti / cx_pri emission when the issuer registration
 // provides the RP shared secret.
 // lines.push(`cx_jti      = ${tomlArray(jti)}`);
 // lines.push(`cx_pri      = ${tomlArray(pri)}`);

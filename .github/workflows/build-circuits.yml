@@ -1,0 +1,127 @@
+name: Build circuits
+
+# The compiled circuit files (target/*.json) embed the source text and the path
+# each source file was read from. They are built here, never on a laptop, so
+# the path is always the CI checkout and no account name ends up in them, and
+# the verify step fails the moment the committed files drift from the source.
+# Ported from zkproofport/circuits' build-circuits.yml, mobile ID circuits only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_artifacts:
+        description: 'Commit the rebuilt artifacts back to this branch'
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - 'circuits/**.nr'
+      - 'circuits/**/Nargo.toml'
+      - 'circuits/deps/**'
+      - 'circuits/scripts/**'
+      - 'circuits/toolchain.env'
+      - '.github/workflows/build-circuits.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Committing the rebuilt artifacts back (commit_artifacts) needs write.
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: circuits
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # write-digests.sh reads the shipped circuit list from this repository's
+      # SDK build (../sdk/dist/circuits.js).
+      - name: Build the SDK
+        working-directory: ${{ github.workspace }}
+        run: |
+          npm ci
+          npm run build --workspace sdk
+
+      - name: Install the pinned nargo and bb (toolchain.env)
+        run: |
+          ./scripts/install-toolchain.sh
+          echo "$HOME/.nargo/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.bb" >> "$GITHUB_PATH"
+
+      # build.sh writes each circuit's SRS with noir-rs's srs_downloader, a Rust
+      # build of several minutes; keep it between runs, keyed by the toolchain.
+      - name: Cache the noir-rs SRS tool
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/noir-rs-tags
+          key: noir-rs-srs-${{ hashFiles('circuits/toolchain.env') }}
+
+      - name: Build every circuit
+        run: |
+          for dir in mdl/kr-age mdl/kr-ownership mdl/kr-region; do
+            echo "::group::$dir"
+            SKIP_POST_BUILD=1 ./scripts/build.sh "$dir"
+            echo "::endgroup::"
+          done
+
+      - name: Publish digests for what the app downloads
+        run: ./scripts/write-digests.sh
+
+      - name: Refuse to publish an incomplete set
+        run: ./scripts/write-digests.sh --check
+
+      - name: Fail if the committed artifacts are out of date
+        if: ${{ github.event_name == 'pull_request' || !inputs.commit_artifacts }}
+        run: |
+          if git diff --quiet; then
+            echo "Committed artifacts match a clean rebuild."
+            exit 0
+          fi
+          echo "::error::Committed circuit artifacts do not match a rebuild from source."
+          git diff --stat
+          for f in $(git diff --name-only -- '*/target/*.json'); do
+            echo "::group::$f"
+            python3 - "$f" <<'PY'
+          import json, subprocess, sys
+          path = sys.argv[1]
+          rel = subprocess.run(['git', 'ls-files', '--full-name', path], capture_output=True, text=True).stdout.strip()
+          old = json.loads(subprocess.run(['git', 'show', f'HEAD:{rel}'], capture_output=True, text=True).stdout)
+          new = json.load(open(path))
+          for key in sorted(set(old) | set(new)):
+              print(f"  {key:16} {'same' if old.get(key) == new.get(key) else 'DIFFERENT'}")
+          PY
+            echo "::endgroup::"
+          done
+          exit 1
+
+      - name: Commit the rebuilt artifacts
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.commit_artifacts }}
+        run: |
+          if git diff --quiet; then
+            echo "Nothing to commit — artifacts already match."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A ':(glob)**/target/**'
+          git commit -m "chore(circuits): rebuild artifacts with the pinned toolchain"
+          git push
+
+      - name: Keep the build output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: circuit-artifacts
+          path: |
+            circuits/mdl/*/target/*.json
+            circuits/mdl/*/target/vk/vk
+            circuits/mdl/*/target/*.sol
+            circuits/mdl/*/target/SHA256SUMS
+            circuits/mdl/*/target/vk/SHA256SUMS
+          if-no-files-found: error
