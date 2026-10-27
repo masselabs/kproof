@@ -13,5 +13,5 @@ export type RootStackParamList = {
   AddId: undefined;
   Request: undefined;
   Proving: {card: CardTypeKey};
-  Done: {card: CardTypeKey; provingMs: number; at: string};
+  Done: {card: CardTypeKey; provingMs: number; verifyMs: number; at: string};
 };

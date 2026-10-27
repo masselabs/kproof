@@ -1,5 +1,8 @@
-import React from 'react';
-import {Linking, StyleSheet, View} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {Linking, ScrollView, StyleSheet, View} from 'react-native';
+import {lookupNetwork, type VerifyOutcome} from '@kproof/sdk';
+import {BUILD_ENV} from '../config/buildEnv';
+import {verifyInAppAnswer, type InAppRequest} from '../services/inAppProof';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -12,10 +15,115 @@ import {colors} from '../ui/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+type Verdict = {state: 'running'} | {state: 'done'; outcome: VerifyOutcome} | {state: 'failed'; detail: string};
+
+function StatusText({ok, text}: {ok: boolean | null; text: string}) {
+  return (
+    <Txt weight="semibold" size={14} color={ok === null ? colors.muted : ok ? colors.blue : colors.red}>
+      {text}
+    </Txt>
+  );
+}
+
+/**
+ * Off-chain: the phone's own verifier accepted the proof before it was sent.
+ * On-chain (in-app requests only): the SDK reads the answer back from the
+ * relay and asks the circuit's verifier contract, as a service would.
+ */
+function Verification({verifyMs, inApp}: {verifyMs: number; inApp: InAppRequest | null}) {
+  const [verdict, setVerdict] = useState<Verdict>({state: 'running'});
+  useEffect(() => {
+    if (inApp === null) return;
+    let live = true;
+    verifyInAppAnswer({environment: BUILD_ENV, fetchImpl: fetch}, inApp, new Date()).then(
+      (outcome) => {
+        console.log(`[in-app] verify ${inApp.requestId}: valid=${outcome.valid} ${outcome.checks.map((c) => `${c.name}=${c.ok}`).join(' ')}`);
+        if (live) setVerdict({state: 'done', outcome});
+      },
+      (err) => {
+        const detail = err instanceof Error ? err.message : String(err);
+        console.log(`[in-app] verify ${inApp.requestId} failed: ${detail}`);
+        if (live) setVerdict({state: 'failed', detail});
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [inApp]);
+
+  const onChain = verdict.state === 'done' ? verdict.outcome.checks.find((c) => c.name === 'on_chain') : undefined;
+  const others = verdict.state === 'done' ? verdict.outcome.checks.filter((c) => c.name !== 'on_chain') : [];
+
+  return (
+    <View style={styles.table} testID="verification">
+      <Txt weight="bold" size={15}>
+        {ko.done.verification}
+      </Txt>
+      <View style={styles.row}>
+        <Txt size={14} color={colors.muted}>
+          {ko.done.offChain}
+        </Txt>
+        <StatusText ok text={ko.done.passIn(verifyMs)} />
+      </View>
+      {inApp !== null ? (
+        <>
+          <View style={styles.row}>
+            <Txt size={14} color={colors.muted}>
+              {ko.done.onChain}
+            </Txt>
+            {verdict.state === 'running' ? (
+              <StatusText ok={null} text={ko.done.checking} />
+            ) : verdict.state === 'failed' ? (
+              <StatusText ok={false} text={ko.done.fail} />
+            ) : (
+              <StatusText ok={onChain?.ok === true} text={onChain?.ok === true ? ko.done.pass : ko.done.fail} />
+            )}
+          </View>
+          {verdict.state === 'done' ? (
+            <>
+              <View style={styles.row}>
+                <Txt size={14} color={colors.muted}>
+                  {ko.done.chain}
+                </Txt>
+                <Txt size={14}>{`${lookupNetwork(BUILD_ENV).name} (${verdict.outcome.network.chainId})`}</Txt>
+              </View>
+              <Txt size={12} color={colors.muted}>
+                {verdict.outcome.network.verifier}
+              </Txt>
+              <View style={styles.divider} />
+              {others.map((c) => (
+                <View key={c.name} style={styles.row}>
+                  <Txt size={13} color={colors.muted}>
+                    {ko.done.check[c.name]}
+                  </Txt>
+                  <StatusText ok={c.ok} text={c.ok ? ko.done.pass : ko.done.fail} />
+                </View>
+              ))}
+              {verdict.outcome.checks
+                .filter((c) => !c.ok)
+                .map((c) => (
+                  <Txt key={`${c.name}-detail`} size={12} color={colors.red}>
+                    {`${ko.done.check[c.name]}: ${c.detail}`}
+                  </Txt>
+                ))}
+            </>
+          ) : null}
+          {verdict.state === 'failed' ? (
+            <Txt size={12} color={colors.red}>
+              {verdict.detail}
+            </Txt>
+          ) : null}
+        </>
+      ) : null}
+    </View>
+  );
+}
+
 export function DoneScreen() {
   const nav = useNavigation<Nav>();
   const {params} = useRoute<RouteProp<RootStackParamList, 'Done'>>();
   const request = useSession((s) => s.pendingRequest);
+  const inApp = useSession((s) => s.inAppRequest);
   if (!request) return <View style={styles.root} />;
   const who = request.dappName ?? ko.request.unnamed;
   const what = shortWhat(request.inputs);
@@ -23,6 +131,7 @@ export function DoneScreen() {
 
   const finish = (to: 'Home' | 'History') => {
     session.setPendingRequest(null);
+    session.setInAppRequest(null);
     nav.navigate('Tabs', {screen: to});
   };
 
@@ -47,7 +156,8 @@ export function DoneScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.root} testID="done-screen">
+    <SafeAreaView style={styles.safe} testID="done-screen">
+      <ScrollView contentContainerStyle={styles.root}>
       <View style={styles.badge}>
         <Icon name="check" size={48} color={colors.white} />
       </View>
@@ -67,7 +177,8 @@ export function DoneScreen() {
           </View>
         ))}
       </View>
-      <View style={styles.flex} />
+      <Verification verifyMs={params.verifyMs} inApp={inApp !== null && inApp.requestId === request.requestId ? inApp : null} />
+      </ScrollView>
       <View style={styles.footer}>
         <PrimaryButton label={request.returnScheme !== undefined ? ko.done.back : ko.done.home} onPress={back} />
         <TextButton label={ko.done.history} color={colors.blue} onPress={() => finish('History')} />
@@ -77,9 +188,10 @@ export function DoneScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {flex: 1, backgroundColor: colors.paper, paddingHorizontal: 24, alignItems: 'center', gap: 16},
+  safe: {flex: 1, backgroundColor: colors.paper},
+  root: {flexGrow: 1, backgroundColor: colors.paper, paddingHorizontal: 24, paddingBottom: 16, alignItems: 'center', gap: 16},
   badge: {
-    marginTop: 96,
+    marginTop: 48,
     width: 96,
     height: 96,
     borderRadius: 999,
@@ -98,6 +210,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   row: {flexDirection: 'row', justifyContent: 'space-between', gap: 16},
-  flex: {flex: 1},
-  footer: {alignSelf: 'stretch', gap: 4, paddingBottom: 8},
+  divider: {height: 1, backgroundColor: colors.line, marginVertical: 2},
+  footer: {paddingHorizontal: 24, gap: 4, paddingBottom: 8},
 });

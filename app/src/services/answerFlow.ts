@@ -16,7 +16,7 @@ import {addHistory, type HistoryResult} from './history';
 import type {KeyValueStore} from './answeredStore';
 import type {Vault} from './vault';
 
-export type ProvingStep = 'files' | 'inputs' | 'prove' | 'send';
+export type ProvingStep = 'files' | 'inputs' | 'prove' | 'verify' | 'send';
 
 export interface AnswerFlowDeps {
   relay: RelayDeps;
@@ -33,7 +33,7 @@ export interface AnswerFlowDeps {
 }
 
 export type FlowResult =
-  | {ok: true; provingMs: number}
+  | {ok: true; provingMs: number; verifyMs: number}
   /** Failed before anything was sent; the request is still open and can be declined. */
   | {ok: false; answered: false; code: ErrorCode; detail: string}
   /** The relay was told (or telling it failed); `code` is what the person sees. */
@@ -115,6 +115,7 @@ export async function approveAndProve(
   let proofHex: string;
   let publicInputs: string[];
   let provingMs: number;
+  let verifyMs: number;
   try {
     onStep('files');
     const paths = await ensureCircuitFiles(deps.fs, deps.circuits, request.circuitId, deps.log);
@@ -138,11 +139,25 @@ export async function approveAndProve(
       throw new AppError('E2004', `prover: ${err instanceof Error ? err.message : String(err)}`);
     }
     provingMs = Date.now() - started;
+
+    // Off-chain check on the phone before anything is sent: a proof the
+    // phone's own verifier rejects is never handed to the relay.
+    onStep('verify');
+    await deps.yieldFrame();
+    const verifyStarted = Date.now();
+    let valid: boolean;
+    try {
+      valid = deps.prover.verify(paths.json, full, vk);
+    } catch (err) {
+      throw new AppError('E2004', `off-chain verify: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    verifyMs = Date.now() - verifyStarted;
+    if (!valid) throw new AppError('E2004', 'off-chain verify: the proof did not verify on this phone');
     const n = deps.prover.numPublicInputs(paths.json);
     const split = deps.prover.split(full, n);
     proofHex = bufferToHex(split.proof);
     publicInputs = split.publicInputs.map(bufferToHex);
-    deps.log(`[prove] ${request.circuitId}: ${split.proof.byteLength} bytes, ${n} public inputs, ${provingMs} ms`);
+    deps.log(`[prove] ${request.circuitId}: ${split.proof.byteLength} bytes, ${n} public inputs, ${provingMs} ms; verified on the phone in ${verifyMs} ms`);
   } catch (err) {
     return fail(toAppError(err, 'E2004'));
   }
@@ -154,7 +169,7 @@ export async function approveAndProve(
   if (code !== null) {
     return {ok: false, answered: true, code, detail: `the relay did not take the proof (${outcome.kind})`, outcome};
   }
-  return {ok: true, provingMs};
+  return {ok: true, provingMs, verifyMs};
 }
 
 /** The person declined, or the request cannot be answered from this phone. */

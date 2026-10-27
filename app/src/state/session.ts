@@ -7,6 +7,7 @@ import {INITIAL_LOCK, onBackground, onForeground, onUnlocked, type LockState} fr
 import type {ProofRequest} from '../domain/request';
 import type {ErrorCode} from '../errors';
 import type {DeviceSecurity, Vault} from '../services/vault';
+import type {InAppRequest} from '../services/inAppProof';
 
 export interface ShownError {
   code: ErrorCode;
@@ -18,6 +19,8 @@ export interface SessionState {
   vault: Vault | null;
   security: DeviceSecurity | null;
   pendingRequest: ProofRequest | null;
+  /** A request this app created for itself from the 증명 tab; its answer is verified on the done screen. */
+  inAppRequest: InAppRequest | null;
   error: ShownError | null;
 }
 
@@ -26,6 +29,7 @@ let state: SessionState = {
   vault: null,
   security: null,
   pendingRequest: null,
+  inAppRequest: null,
   error: null,
 };
 const listeners = new Set<() => void>();
@@ -67,6 +71,9 @@ export const session = {
   },
   setPendingRequest(request: ProofRequest | null): void {
     set({pendingRequest: request});
+  },
+  setInAppRequest(request: InAppRequest | null): void {
+    set({inAppRequest: request});
   },
   showError(code: ErrorCode, detail: string): void {
     console.log(`[error] ${code}: ${detail}`);

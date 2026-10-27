@@ -5,7 +5,11 @@
 #
 # Prerequisites:
 #   - app/mopro_bindings built (../scripts/mopro_build.sh) and `npm install`,
-#     `bundle exec pod install` done in app/ and app/ios/
+#     `bundle exec pod install` done in app/ and app/ios/, and `npm install` in
+#     the repository root (the SDK workspace)
+#
+# The app imports the repository's SDK (`@kproof/sdk` -> ../sdk). Its dist/ is
+# not committed, so this script builds it before bundling and checks it exists.
 #   - ASC_KEY_ID / ASC_ISSUER_ID / ASC_API_KEY in the environment, for
 #     scripts/dev-profile.py (registers the app id and installs the
 #     "KProof Development" profile for this device; idempotent)
@@ -35,6 +39,10 @@ if ! grep -q "BUILD_ENV: EnvName = '$APP_ENV_NAME';" "$APP_DIR/src/config/buildE
 fi
 LOG_DIR="${TMPDIR:-/tmp}/kproof-device-build"
 mkdir -p "$LOG_DIR"
+
+REPO="$(git -C "$APP_DIR" rev-parse --show-toplevel)"
+(cd "$REPO" && env -u NODE_OPTIONS npm run build -w sdk > "$LOG_DIR/sdk-build.log" 2>&1) || { echo "SDK build failed:" >&2; cat "$LOG_DIR/sdk-build.log" >&2; exit 1; }
+[ -f "$REPO/sdk/dist/index.js" ] || { echo "SDK build left no sdk/dist/index.js" >&2; exit 1; }
 
 eval "$(python3 "$APP_DIR/scripts/dev-profile.py" "$UDID" | grep -E '^(PROFILE_NAME|PROFILE_UUID|TEAM_ID)=' | sed 's/^\([A-Z_]*\)=\(.*\)$/\1="\2"/')"
 [ -n "${PROFILE_UUID:-}" ] || { echo "dev-profile.py did not return a profile" >&2; exit 1; }

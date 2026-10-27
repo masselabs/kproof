@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
+import {Modal, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -8,9 +8,12 @@ import {ko} from '../i18n/ko';
 import {CARD_ORDER, type CardTypeKey} from '../config/cardTypes';
 import {CIRCUIT_IDS} from '../config/circuits';
 import type {StoredCard} from '../services/importCard';
-import {useSession} from '../state/session';
+import {session, useSession} from '../state/session';
+import {toAppError} from '../errors';
+import {keychain} from '../services/keychainAdapter';
+import {withoutCard, writeVault} from '../services/vault';
 import type {RootStackParamList} from '../navigation/types';
-import {Chip, Icon, OutlineButton, Panel, PrimaryButton, Txt, Wordmark} from '../ui/components';
+import {Chip, Icon, OutlineButton, Panel, PrimaryButton, TextButton, Txt, Wordmark} from '../ui/components';
 import {birthDots, cardColor, cardName, cardShort, dateDots, maskName} from '../ui/describe';
 import {colors} from '../ui/theme';
 
@@ -38,6 +41,24 @@ export function HomeScreen() {
   const [front, setFront] = useState<CardTypeKey | null>(null);
   const [hidden, setHidden] = useState(true);
   const [factsOpen, setFactsOpen] = useState(false);
+  const [removing, setRemoving] = useState<CardTypeKey | null>(null);
+
+  const remove = async () => {
+    const type = removing;
+    setRemoving(null);
+    if (type === null) return;
+    try {
+      // Written into the vault the person has unlocked; the in-memory copy follows the stored one.
+      const current = await session.whenUnlocked();
+      const next = withoutCard(current, type);
+      await writeVault(keychain, next);
+      session.setVault(next);
+      setFront(null);
+    } catch (err) {
+      const e = toAppError(err, 'E5001');
+      session.showError(e.code, e.detail);
+    }
+  };
 
   const frontCard = cards.find((c) => c.type === front) ?? cards[0];
 
@@ -147,8 +168,24 @@ export function HomeScreen() {
               </Txt>
             </Pressable>
           </View>
+          <TextButton label={ko.home.remove(cardName(frontCard.type))} color={colors.red} onPress={() => setRemoving(frontCard.type)} testID="remove-card" />
         </ScrollView>
       )}
+
+      <Modal transparent visible={removing !== null} animationType="fade" onRequestClose={() => setRemoving(null)}>
+        <View style={styles.scrim}>
+          <View style={styles.sheet}>
+            <Txt weight="bold" size={20}>
+              {removing === null ? '' : ko.home.removeTitle(cardName(removing))}
+            </Txt>
+            <Txt size={15} color={colors.muted}>
+              {ko.home.removeBody}
+            </Txt>
+            <PrimaryButton label={ko.home.removeConfirm} color={colors.red} onPress={remove} />
+            <TextButton label={ko.home.removeCancel} onPress={() => setRemoving(null)} />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -206,5 +243,7 @@ const styles = StyleSheet.create({
   cardFoot: {borderTopWidth: 1, borderTopColor: colors.line, paddingHorizontal: 18, paddingVertical: 10},
   actions: {flexDirection: 'row', gap: 10},
   flex: {flex: 1},
+  scrim: {flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end'},
+  sheet: {backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, gap: 12},
   prove: {flex: 1, height: 48, borderRadius: 12, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center'},
 });

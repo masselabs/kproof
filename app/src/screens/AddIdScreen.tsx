@@ -1,14 +1,14 @@
 import React, {useRef, useState} from 'react';
-import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
+import {ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {ko} from '../i18n/ko';
-import {CARD_ORDER, REQUEST_PROVIDER} from '../config/cardTypes';
-import {raonDeps} from '../app/deps';
+import {CARD_ORDER, REQUEST_PROVIDER, type CardTypeKey} from '../config/cardTypes';
+import {idImportDeps} from '../app/deps';
 import {toAppError} from '../errors';
-import {cardFromRaon} from '../services/importCard';
+import {CardMismatchError, cardFromAnswer} from '../services/importCard';
 import {keychain} from '../services/keychainAdapter';
-import {runRaonImport} from '../services/raon';
+import {runIdImport} from '../services/idImport';
 import {withCard, writeVault} from '../services/vault';
 import {session, useSession} from '../state/session';
 import {Icon, PrimaryButton, TextButton, Txt} from '../ui/components';
@@ -22,20 +22,23 @@ export function AddIdScreen() {
   const nav = useNavigation();
   const vault = useSession((s) => s.vault);
   const [running, setRunning] = useState(false);
+  const [choice, setChoice] = useState<CardTypeKey | null>(null);
   const abort = useRef<AbortController | null>(null);
 
   const start = async () => {
+    if (choice === null) return;
+    const requested = choice;
     const controller = new AbortController();
     abort.current = controller;
     setRunning(true);
     try {
-      const data = await runRaonImport(raonDeps(), {
+      const data = await runIdImport(idImportDeps(), {
         provider: REQUEST_PROVIDER,
         signal: controller.signal,
         timeoutMs: IMPORT_TIMEOUT_MS,
         pollIntervalMs: IMPORT_POLL_MS,
       });
-      const card = cardFromRaon(data, new Date());
+      const card = cardFromAnswer(data, new Date(), requested);
       // The person may have been away long enough for the app to lock; the
       // card is written only into the vault they unlock again.
       const current = await session.whenUnlocked();
@@ -44,8 +47,12 @@ export function AddIdScreen() {
       session.setVault(next);
       nav.goBack();
     } catch (err) {
-      const e = toAppError(err, 'E6001');
-      session.showError(e.code, e.detail);
+      if (err instanceof CardMismatchError) {
+        session.showError('E6007', ko.addId.mismatch(cardName(err.chose), cardName(err.received), err.detail));
+      } else {
+        const e = toAppError(err, 'E6001');
+        session.showError(e.code, e.detail);
+      }
     } finally {
       abort.current = null;
       setRunning(false);
@@ -70,20 +77,29 @@ export function AddIdScreen() {
           {ko.addId.pick}
         </Txt>
         {CARD_ORDER.map((key) => {
+          const selected = choice === key;
           const has = vault?.cards.some((c) => c.type === key) === true;
+          const note = has ? ko.addId.already : ko.addId.sourceApp;
           return (
-            <View key={key} style={styles.option}>
+            <Pressable
+              key={key}
+              testID={`addid-choice-${key}`}
+              accessibilityRole="radio"
+              accessibilityState={{selected, disabled: running}}
+              disabled={running}
+              onPress={() => setChoice(key)}
+              style={[styles.option, selected && styles.optionSelected]}>
               <View style={[styles.swatch, {backgroundColor: cardColor(key)}]} />
               <View style={styles.flex}>
                 <Txt weight="bold" size={15}>
                   {cardName(key)}
                 </Txt>
                 <Txt size={12} color={colors.muted}>
-                  {has ? ko.addId.already : ko.addId.sourceApp}
+                  {note}
                 </Txt>
               </View>
-              {has ? <Icon name="check" size={20} color={colors.blue} /> : null}
-            </View>
+              <Icon name={selected ? 'check' : 'dot'} size={20} color={selected ? colors.blue : colors.line} />
+            </Pressable>
           );
         })}
         <Txt size={13} color={colors.ink}>
@@ -96,25 +112,25 @@ export function AddIdScreen() {
             </Txt>
           ))}
         </View>
-        <Txt size={12} color={colors.muted}>
-          {ko.addId.raonNote}
-        </Txt>
       </ScrollView>
       <View style={styles.footer}>
-        {running ? (
-          <>
-            <Txt weight="semibold" size={15} style={styles.center}>
+        <PrimaryButton label={choice === null ? ko.addId.pickFirst : ko.addId.open} onPress={start} disabled={choice === null || running} />
+      </View>
+
+      <Modal transparent visible={running} animationType="fade" onRequestClose={cancel}>
+        <View style={styles.scrim}>
+          <View style={styles.sheet} testID="addid-waiting">
+            <ActivityIndicator size="large" color={colors.blue} />
+            <Txt weight="bold" size={18} style={styles.center}>
               {ko.addId.waiting}
             </Txt>
-            <Txt size={13} color={colors.muted} style={styles.center}>
+            <Txt size={14} color={colors.muted} style={styles.center}>
               {ko.addId.waitingNote}
             </Txt>
             <TextButton label={ko.addId.cancel} onPress={cancel} />
-          </>
-        ) : (
-          <PrimaryButton label={ko.addId.open} onPress={start} />
-        )}
-      </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -134,9 +150,12 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: 12,
   },
+  optionSelected: {borderColor: colors.blue, borderWidth: 2},
   swatch: {width: 36, height: 24, borderRadius: 4},
   flex: {flex: 1},
   steps: {gap: 6, marginTop: 4},
   footer: {paddingHorizontal: 20, paddingBottom: 8, gap: 4},
   center: {textAlign: 'center'},
+  scrim: {flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end'},
+  sheet: {backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, gap: 12},
 });

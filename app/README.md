@@ -15,7 +15,7 @@ from services with a zero-knowledge proof generated on the device.
 
 | Data | Where it goes | When |
 |---|---|---|
-| The ID data (name, birth date, address, CI, phone number) | RAON's OACX server (`cx.raonsecure.co.kr`), which relays the government mobile ID app's submission back to the phone | Only while importing an ID ("신분증 추가"). This is how the mobile ID submission reaches an app today and cannot be avoided on this path. |
+| The ID data (name, birth date, address, CI, phone number) | The mobile ID relay server, which returns the government mobile ID app's submission to the phone | Only while importing an ID ("신분증 추가") |
 | A proof and its public inputs (scope hash, nullifier, the requested threshold or si/do hash) | The callback URL of the request, which must be a KProof relay on the allow-list | When the person approves a request |
 | `generating`, `cancelled`, `error` + an error code | Same callback | While answering a request |
 | Circuit files (download only) | `raw.githubusercontent.com/zkproofport/circuits/<pinned commit>` | First proof per circuit |
@@ -94,10 +94,22 @@ embedded, no Metro) and is checked for its signature and bundle before
 `devicectl` installs it. First run 2026-10-27: iPhone 16 Pro Max, profile valid
 to 2027-10-27.
 
+## TestFlight
+
+```bash
+# ASC_KEY_ID, ASC_ISSUER_ID, ASC_API_KEY (base64 .p8) in the environment
+scripts/testflight.sh staging      # archive, upload, wait until App Store Connect lists the build as VALID
+python3 scripts/testflight-group.py   # internal group "Internal" with ZKProofport's internal testers (idempotent)
+```
+
+`scripts/appstore-profile.py` (called by `testflight.sh`) installs the
+"KProof App Store" profile and picks the build number: one above the highest
+build App Store Connect has. App Store Connect app: KProof (6827592413).
+
 ## Environments
 
 `src/config/env.ts` holds one row per environment (`development`, `staging`):
-the relay callback allow-list, the circuits commit, and the RAON base URL. An
+the relay callback allow-list, the circuits commit, and the mobile ID relay URL. An
 unknown environment name throws. The build's environment is set in
 `src/config/buildEnv.ts`.
 
@@ -128,19 +140,20 @@ Deep link (`kproof://proof-request?data=<base64url JSON>`), parsed by
 | `returnScheme` not a bare custom scheme (`https://`, `bank://pay?x`) | refused, E1005 | `request.test.ts` "returnScheme rules" |
 | Same `requestId` already answered on this phone | not shown again, not re-answered, E1007 | `relayAnswer.test.ts` "a second answer for the same request is not sent", "an answer from an earlier run blocks a new one (persisted)", "answeredStore" |
 
-RAON import (`src/services/raon.ts`, `src/services/importCard.ts`):
+Mobile ID import (`src/services/idImport.ts`, `src/services/importCard.ts`):
 
 | Case | Expected | Test |
 |---|---|---|
-| Each stage (`trans`, `authen/app/request`, `trans/token`) answers HTTP 5xx, non-JSON, a non-object, a non-success `oacxCode`, a missing field, or the network fails | stops with E6001 naming the stage | `raon.test.ts` "each stage failure names the stage" |
-| Poll never reports success | E6002 after the timeout (fake clock) | `raon.test.ts` "poll times out" |
-| Person cancels (taps 취소 in KProof, or returns from the government app without submitting) | polling stops, E6003, nothing stored | `raon.test.ts` "cancel stops polling" |
-| Poll answers errors while the person is still in the government app | keeps polling | `raon.test.ts` "keeps polling through errors" |
-| No `iosLink` / `androidLink`; government app not installed (`canOpenURL` false) | E6004 naming the scheme only | `raon.test.ts` "missing or unopenable deep link" |
+| Each stage (`trans`, `authen/app/request`, `trans/token`) answers HTTP 5xx, non-JSON, a non-object, a non-success answer code (`trans`, `trans/token`), a missing field, or the network fails | stops with E6001 naming the stage | `idImport.test.ts` "each stage failure names the stage" |
+| `authen/app/request` answers a non-success code | E6008 naming the requested code and the relay's own code and message | `idImport.test.ts` "the relay refusing the request is its own error" |
+| Poll never reports success | E6002 after the timeout (fake clock) | `idImport.test.ts` "poll times out" |
+| Person cancels (taps 취소 in KProof, or returns from the government app without submitting) | polling stops, E6003, nothing stored | `idImport.test.ts` "cancel stops polling" |
+| Poll answers errors while the person is still in the government app | keeps polling | `idImport.test.ts` "keeps polling through errors" |
+| No `iosLink` / `androidLink`; government app not installed (`canOpenURL` false) | E6004 naming the scheme only | `idImport.test.ts` "missing or unopenable deep link" |
 | Unknown provider code (`comxx_v1.5`, `__proto__`) | refused before any network call, E6005 | `importCard.test.ts` "unknown provider" |
 | Returned data missing `ci`, `name`, `birth` (per card type); `birth` not a real YYYYMMDD date; `ci` over 88 bytes; name over 64 bytes; address over 256 bytes | E6006 naming the field, nothing stored | `importCard.test.ts` "required fields per card type" |
-| The government app returns the representative card, not the requested type | stored under the returned type | `importCard.test.ts` "the returned card decides the type" |
-| Returned `provider` missing or unknown | E6005 naming the value, nothing stored | `importCard.test.ts` "a card RAON does not name, or names unknown" |
+| The government app returns another card than the one the person chose (its representative card) | refused, nothing stored, E6007 tells the person to make the chosen card their representative card | `importCard.test.ts` "a different card than the one chosen is refused, naming both" |
+| Returned `provider` missing or unknown | E6005 naming the value, nothing stored | `importCard.test.ts` "a card the relay does not name, or names unknown" |
 | Resident registration number (`ihidnum`) and other unused fields in the answer | not stored | `importCard.test.ts` "stores only the allow-listed fields" |
 
 Storage and lock (`src/services/vault.ts`, `src/domain/lock.ts`):
@@ -168,6 +181,12 @@ Proving and answering (`src/services/answerFlow.ts`, `src/services/relayAnswer.t
 | Relay answers 5xx; network down | E3003 / E3001 shown; nothing crashes | `relayAnswer.test.ts` |
 | Two answers for one request (double tap, error after cancel) | the second is not sent | `relayAnswer.test.ts` |
 | `generating` is sent before the proof, `completed` carries `proof`, `publicInputs`, `circuit` | exact bodies asserted | `answerFlow.test.ts`, `relayAnswer.test.ts` "bodies match kproof-server callback fields" |
+| In-app proof (증명 tab, "앱에서 증명해 보기"): the SDK creates a real request on the build environment's relay with scope `kproof-app:in-app-proof`; its deep link goes through the ordinary link handler | exact relay calls and bodies asserted | `inAppProof.test.ts` "creates a real request ...", "age and region carry exactly their own input" |
+| In-app proof with an age the SDK refuses (0, 151, 19.5, NaN) | refused before any relay call | `inAppProof.test.ts` "an age the SDK refuses never reaches the relay" |
+| In-app proof in an environment the SDK has no network for (`development`, `production`, `__proto__`, empty) | throws naming it, no relay call | `inAppProof.test.ts` "an environment the SDK has no network for" |
+| In-app proof with the relay down | the relay error is shown (E3001 / E3002 / E3003) | `inAppProof.test.ts` "a relay that is down surfaces its error"; the code mapping is on the screen and was checked on the device only |
+| After answering an in-app request, the done screen reads the answer back from the relay and runs the SDK's `verifyAnswer` (including `eth_call` on the verifier) | each check shown; a non-completed answer or a wrong scope is not valid | `inAppProof.test.ts` "reads the answer back ...", "a completed answer with the wrong scope is not valid"; a real proof end to end only on the device |
+| Delete one card from the Home screen | confirmation sheet; only that card leaves the vault; history stays | `vault.test.ts` "... deleting a card"; the screen was checked on the device only |
 | Input layout per circuit (field order and count, nullifier = keccak(keccak(ci) ‖ keccak(scope))) | matches the Noir `main()` signatures | `mdlInputs.test.ts`; also checked once by `nargo execute` on the pinned circuits (witness solves for all three; age 20 for a 2007 birth year fails `assert_age`) |
 
 ### End-to-end (needs a person and a physical phone)
@@ -180,19 +199,22 @@ manual E2E run on a phone with the mobile ID installed:
 2. On https://stg-demo.koreanproof.com create one request per circuit, open the
    deep link on the phone, approve, and confirm the demo receives `completed`
    and the SDK verifies the proof against the pinned Base Sepolia verifier.
-3. Decline one request (demo shows `cancelled`), let one expire (demo shows
+3. In the app's 증명 tab, tap "앱에서 증명해 보기" for each fact; approve, and
+   confirm the done screen shows every SDK check passing, 온체인 검증 included.
+4. Decline one request (demo shows `cancelled`), let one expire (demo shows
    `expired`, the app shows E1003 on a late answer), and re-open an answered
    link (app shows E1007, sends nothing).
 
-The simulator check in this repository stops at the Request screen built from a
-real staging request.
+## Importing a mobile ID
 
-## Not done yet
+The person picks a card type. The import asks for 모바일 신분증
+(`coidentitydocument_v1.5`, the generic mobile-ID code), and the government
+app submits the person's representative card, which the answer names in
+`vcTypeCodeList`. A card of another type than the one chosen is not stored; the
+person is told to make the chosen card their representative card (E6007).
 
-- QR scanning ("QR로 요청 받기"): needs a camera library; requests arrive by deep link only.
-- Government signature check: the circuits do not verify the issuer's signature yet (the RAON HS256 integrity fields are commented out in the circuits). The "정부 서명 확인" badge from the design is therefore not shown.
-- The age circuit compares birth YEAR with the current year (`assert_age` in `mdl/kr-common`), so it proves "age by year" (연 나이), not 만 나이. The UI says "N세 이상 (출생 연도 기준)".
-- The import requests `comdl_v1.5` and stores whatever card the government app returns (its representative card), typed by RAON's `provider` field. RAON's provider list (2026-10-27) enables comdl and comdc and disables comrc / comnh, and only `comdl_v1.5` started an import, so that is the request; see `REQUEST_PROVIDER` in `src/config/cardTypes.ts`. Which exact `provider` string comes back for each card is not documented; both `comrc_v1.5` and `comrc` are accepted.
+The age proof compares birth year with the current year (연 나이); the UI says
+"N세 이상 (출생 연도 기준)".
 
 ## License
 

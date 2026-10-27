@@ -74,6 +74,10 @@ function setup(over: Partial<AnswerFlowDeps> = {}, replies: number[] = [200]) {
       numPublicInputs: () => 2,
       split: () => ({proof: Uint8Array.from([0xab, 0xcd]).buffer, publicInputs: [Uint8Array.from([1]).buffer, Uint8Array.from([2]).buffer]}),
       readFile: async () => new ArrayBuffer(8),
+      verify: (_c, full) => {
+        order.push(`verify:${full.byteLength}`);
+        return true;
+      },
     },
     circuits: CIRCUITS_SOURCE,
     history: kv,
@@ -93,8 +97,8 @@ describe('approveAndProve', () => {
     const steps: string[] = [];
     const r = await approveAndProve(deps, request, 'comrc_v1_5', (s) => steps.push(s));
     expect(r.ok).toBe(true);
-    expect(order).toEqual(['auth', 'post:generating', 'prove:162', 'post:completed']);
-    expect(steps).toEqual(['files', 'inputs', 'prove', 'send']);
+    expect(order).toEqual(['auth', 'post:generating', 'prove:162', 'verify:68', 'post:completed']);
+    expect(steps).toEqual(['files', 'inputs', 'prove', 'verify', 'send']);
     expect(posts[1]).toEqual({
       requestId: request.requestId,
       circuit: 'mdl_kr_age',
@@ -125,6 +129,18 @@ describe('approveAndProve', () => {
     const r = await approveAndProve(deps, {...request, inputs: {circuitId: 'mdl_kr_age', scope: 'd', ageThreshold: 40}}, 'comrc_v1_5', () => undefined);
     expect(r).toMatchObject({answered: false, code: 'E2002'});
     expect(posts).toHaveLength(0);
+  });
+
+  test('a proof the phone does not verify is never sent: error E2004 instead', async () => {
+    for (const verify of [() => false, () => { throw new Error('VerifyError'); }]) {
+      resetClaimsForTests();
+      const {deps, posts} = setup();
+      deps.prover.verify = verify;
+      const r = await approveAndProve(deps, request, 'comrc_v1_5', () => undefined);
+      expect(r).toMatchObject({ok: false, answered: true, code: 'E2004'});
+      expect(posts.map((p) => p.status)).toEqual(['generating', 'error']);
+      expect(posts.some((p) => 'proof' in p)).toBe(false);
+    }
   });
 
   test('prover failure answers error E2004 exactly once', async () => {

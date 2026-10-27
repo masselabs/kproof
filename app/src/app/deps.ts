@@ -10,7 +10,7 @@ import type {AnswerFlowDeps} from '../services/answerFlow';
 import {fsAdapter} from '../services/fsAdapter';
 import {keychain} from '../services/keychainAdapter';
 import {moproAdapter} from '../services/moproAdapter';
-import type {RaonDeps} from '../services/raon';
+import type {IdImportDeps} from '../services/idImport';
 import type {RelayDeps} from '../services/relayAnswer';
 import {openVault} from '../services/vault';
 
@@ -51,9 +51,9 @@ function platform(): 'ios' | 'android' {
   }
 }
 
-export function raonDeps(): RaonDeps {
+export function idImportDeps(): IdImportDeps {
   return {
-    baseUrl: currentEnv().raonBaseUrl,
+    baseUrl: currentEnv().idImportBaseUrl,
     fetch: (...a) => fetch(...a),
     platform: platform(),
     canOpenURL: (u) => Linking.canOpenURL(u),

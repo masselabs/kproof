@@ -24,8 +24,8 @@ export interface EnvRow {
   relays: readonly RelayEndpoint[];
   /** The repository and commit the circuit files are read from (config/circuits.ts). */
   circuits: CircuitsSource;
-  /** RAON OmniOne CX (OACX) server the mobile ID import talks to. */
-  raonBaseUrl: string;
+  /** Mobile ID relay server the import talks to. */
+  idImportBaseUrl: string;
 }
 
 export const RELAY_CALLBACK_PATH = '/api/v1/proof/callback';
@@ -39,12 +39,12 @@ export const ENV = {
       {protocol: 'https:', host: 'stg-api.koreanproof.com', port: ''},
     ],
     circuits: CIRCUITS_SOURCE,
-    raonBaseUrl: 'https://cx.raonsecure.co.kr:18543',
+    idImportBaseUrl: 'https://cx.raonsecure.co.kr:18543',
   },
   staging: {
     relays: [{protocol: 'https:', host: 'stg-api.koreanproof.com', port: ''}],
     circuits: CIRCUITS_SOURCE,
-    raonBaseUrl: 'https://cx.raonsecure.co.kr:18543',
+    idImportBaseUrl: 'https://cx.raonsecure.co.kr:18543',
   },
 } as const satisfies Record<string, EnvRow>;
 

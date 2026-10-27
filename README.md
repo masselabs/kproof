@@ -12,14 +12,7 @@ on the device.
 
 ## Status
 
-Early development, staging only. Everything below exists and is tested: the app
-(imports a mobile ID through RAON's App2App flow, proves on the device, answers
-the relay), the SDK and demo page, the three circuits and the prover crate.
-Not yet verified on a real phone, and the circuits do not check the
-government's signature on the ID data yet: that waits for the KOMSCO message
-spec. The design is being worked out alongside the Korea Mobile ID integration
-with KOMSCO (한국조폐공사), which issues and operates the mobile ID verification
-service.
+In testing on staging.
 
 ## Structure
 
@@ -27,11 +20,11 @@ This is one repository for everything public in KProof, so a change to a
 circuit lands in the app, the SDK and the circuits in a single commit.
 
 ```
-app/        KProof mobile app (iOS, Android): reads the mobile ID and proves on the device (exists)
-sdk/        SDK for services: create a proof request and verify the answer (exists)
-circuits/   Noir circuits for Korea Mobile ID proofs (exists: mdl/kr-ownership, kr-age, kr-region)
+app/        KProof mobile app (iOS, Android): reads the mobile ID and proves on the device
+sdk/        SDK for services: create a proof request and verify the answer
+circuits/   Noir circuits for Korea Mobile ID proofs (mdl/kr-ownership, kr-age, kr-region)
 mopro/      Rust crate for the on-device prover; scripts/mopro_build.sh builds app/mopro_bindings
-demo/       Demo page: creates a proof request and waits for the answer (exists)
+demo/       Demo page: creates a proof request and waits for the answer
 ```
 
 The server (proof request relay and the SP module that talks to KOMSCO) lives in

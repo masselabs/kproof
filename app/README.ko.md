@@ -14,7 +14,7 @@ KProof 모바일 앱입니다(React Native 0.81.4, iOS 우선). 모바일 신분
 
 | 데이터 | 가는 곳 | 언제 |
 |---|---|---|
-| 신분증 정보(이름, 생년월일, 주소, CI, 전화번호) | RAON OACX 서버(`cx.raonsecure.co.kr`). 정부 모바일 신분증 앱의 제출을 휴대폰으로 중계합니다 | 신분증을 가져올 때만("신분증 추가"). 지금 모바일 신분증 제출이 앱에 닿는 경로가 이것뿐이라 피할 수 없습니다 |
+| 신분증 정보(이름, 생년월일, 주소, CI, 전화번호) | 모바일 신분증 중계 서버. 정부 모바일 신분증 앱의 제출을 휴대폰으로 돌려줍니다 | 신분증을 가져올 때만("신분증 추가") |
 | 증명과 공개 입력(scope 해시, nullifier, 요청한 나이 기준이나 시·도 해시) | 요청의 callback URL. 허용 목록에 있는 KProof relay여야 합니다 | 사용자가 요청을 승인할 때 |
 | `generating`, `cancelled`, `error`와 오류 코드 | 같은 callback | 요청에 답하는 동안 |
 | 회로 파일(내려받기만) | `raw.githubusercontent.com/masselabs/kproof/<고정 커밋>/circuits/...` | 회로마다 첫 증명 때 |
@@ -84,10 +84,22 @@ scripts/build-device.sh <기기-UDID> staging
 번들 포함, Metro 불필요)이고, 서명과 번들을 확인한 뒤 `devicectl`로 설치합니다. 처음 실행:
 2026-10-27, iPhone 16 Pro Max, 프로필 유효기간 2027-10-27.
 
+## TestFlight
+
+```bash
+# 환경 변수에 ASC_KEY_ID, ASC_ISSUER_ID, ASC_API_KEY(base64로 인코딩한 .p8)
+scripts/testflight.sh staging      # 아카이브, 업로드, App Store Connect가 VALID로 표시할 때까지 대기
+python3 scripts/testflight-group.py   # 내부 그룹 "Internal"에 ZKProofport 내부 테스터를 그대로 추가(여러 번 실행해도 같음)
+```
+
+`testflight.sh`가 부르는 `scripts/appstore-profile.py`가 "KProof App Store" 프로필을
+설치하고 빌드 번호를 정합니다(App Store Connect에 있는 가장 높은 빌드 + 1). App Store
+Connect 앱: KProof (6827592413).
+
 ## 환경
 
 `src/config/env.ts`에 환경(`development`, `staging`)마다 한 행이 있습니다: relay
-callback 허용 목록, 회로 출처, RAON 주소. 모르는 환경 이름은 예외를 던집니다. 빌드의
+callback 허용 목록, 회로 출처, 모바일 신분증 중계 서버 주소. 모르는 환경 이름은 예외를 던집니다. 빌드의
 환경은 `src/config/buildEnv.ts`에서 정합니다.
 
 ## 예외 상황
@@ -109,14 +121,14 @@ callback 허용 목록, 회로 출처, RAON 주소. 모르는 환경 이름은 �
 3. 하나는 거절(데모에 `cancelled`), 하나는 시간 초과(데모에 `expired`, 늦은 답에는 앱이
    E1003), 이미 답한 링크를 다시 열기(앱이 E1007, 아무것도 보내지 않음).
 
-이 저장소의 시뮬레이터 확인은 실제 스테이징 요청으로 만든 증명 요청 화면까지입니다.
+## 모바일 신분증 가져오기
 
-## 아직 안 된 것
+사용자가 신분증 종류를 고르면, 모바일 신분증 공통 코드(`coidentitydocument_v1.5`)로
+요청합니다. 정부 앱은 사용자의 대표 신분증을 제출하고, 응답의 `vcTypeCodeList`가 그
+종류를 알려 줍니다. 고른 종류와 다르면 저장하지 않고, 고른 신분증을 대표
+신분증으로 바꾼 뒤 다시 가져오라고 안내합니다(E6007).
 
-- QR 스캔("QR로 요청 받기"): 카메라 라이브러리가 필요합니다. 지금은 딥링크로만 요청을 받습니다.
-- 정부 서명 확인: 회로가 아직 발급자 서명을 검증하지 않습니다(RAON HS256 무결성 필드가 회로에서 주석 처리됨). 그래서 디자인의 "정부 서명 확인" 표시는 넣지 않았습니다.
-- 나이 회로는 출생 연도와 올해를 비교합니다(`mdl/kr-common`의 `assert_age`). 즉 만 나이가 아니라 연 나이를 증명하며, 화면에도 "출생 연도 기준"이라고 씁니다.
-- 가져오기는 `comdl_v1.5`로 요청하고, 정부 앱이 보낸 신분증(대표 신분증)을 RAON 응답의 `provider` 값에 따라 그 종류로 저장합니다. RAON 제공자 목록(2026-10-27)에서 comdl·comdc는 켜져 있고 comrc·comnh는 꺼져 있으며, 가져오기가 시작된 요청은 `comdl_v1.5`뿐이라 이것으로 요청합니다(`src/config/cardTypes.ts`의 `REQUEST_PROVIDER`). 신분증별로 정확히 어떤 `provider` 문자열이 오는지는 문서가 없어 `comrc_v1.5`와 `comrc`를 모두 받습니다.
+나이 증명은 출생 연도와 올해를 비교합니다(연 나이). 화면에도 "출생 연도 기준"이라고 씁니다.
 
 ## 라이선스
 

@@ -11,6 +11,8 @@ export interface ProverPort {
   numPublicInputs(circuitPath: string): number;
   split(proofWithInputs: ArrayBuffer, numPublicInputs: number): {proof: ArrayBuffer; publicInputs: ArrayBuffer[]};
   readFile(path: string): Promise<ArrayBuffer>;
+  /** Off-chain check on the phone: mopro's own verifier, same circuit, key and transcript as `generate`. */
+  verify(circuitPath: string, proofWithInputs: ArrayBuffer, vk: ArrayBuffer): boolean;
 }
 
 export function bufferToHex(buf: ArrayBuffer): string {

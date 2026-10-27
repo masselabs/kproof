@@ -1,12 +1,24 @@
 /**
- * Turns the ID data RAON returned into the card KProof stores, or refuses it.
+ * Turns the ID data the relay returned into the card KProof stores, or refuses it.
  * Nothing is stored unless every required field is present and fits the
  * circuits' buffers.
  */
 import {AppError} from '../errors';
-import {CARD_TYPES, keyForReturnedProvider, type CardTypeKey} from '../config/cardTypes';
+import {CARD_TYPES, keyForReturnedCard, type CardTypeKey} from '../config/cardTypes';
 import {utf8Encode} from '../domain/bytes';
 import {ADDRESS_MAX, CI_LEN, NAME_MAX, TELNO_MAX} from '../domain/mdlInputs';
+
+/** The government app sent a card of another type than the person chose. */
+export class CardMismatchError extends AppError {
+  constructor(
+    readonly chose: CardTypeKey,
+    readonly received: CardTypeKey,
+    receivedProvider: string,
+  ) {
+    super('E6007', `chose ${CARD_TYPES[chose].provider}, received ${receivedProvider}`);
+    this.name = 'CardMismatchError';
+  }
+}
 
 export interface StoredCard {
   type: CardTypeKey;
@@ -39,14 +51,17 @@ function asText(value: unknown): string | undefined {
   return undefined;
 }
 
-export function cardFromRaon(data: Record<string, unknown>, now: Date): StoredCard {
-  // The government app submits the person's representative card, whatever was
-  // asked for; RAON names it in `provider`, and that decides the card type.
+export function cardFromAnswer(data: Record<string, unknown>, now: Date, expected: CardTypeKey): StoredCard {
+  // The card the relay says the government app submitted must be the card the
+  // person chose; anything else is refused and nothing is stored.
   let type: CardTypeKey;
   try {
-    type = keyForReturnedProvider(data.provider);
+    type = keyForReturnedCard(data);
   } catch (err) {
     throw new AppError('E6005', err instanceof Error ? err.message : String(err));
+  }
+  if (type !== expected) {
+    throw new CardMismatchError(expected, type, `${String(data.provider)} ${typeof data.vcTypeCodeList === 'string' ? data.vcTypeCodeList : ''}`.trim());
   }
   const spec = CARD_TYPES[type];
 
