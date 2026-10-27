@@ -1,0 +1,35 @@
+import { type UniffiRustCallStatus } from '@ubjs/core';
+interface NativeModuleInterface {
+    ubrn_uniffi_internal_fn_func_ffi__string_to_byte_length(string: string, uniffi_out_err: UniffiRustCallStatus): number;
+    ubrn_uniffi_internal_fn_func_ffi__string_to_buffer(string: string, uniffi_out_err: UniffiRustCallStatus): Uint8Array;
+    ubrn_uniffi_internal_fn_func_ffi__string_from_buffer(buffer: Uint8Array, uniffi_out_err: UniffiRustCallStatus): string;
+    ubrn_uniffi_internal_fn_func_ffi__read_string_from_buffer(buffer: any, offset: number, length: number): string;
+    ubrn_ffi_proofport_uniffi_contract_version(): number;
+    ubrn_uniffi_proofport_checksum_func_combine_proof_and_public_inputs(): number;
+    ubrn_uniffi_proofport_checksum_func_generate_circom_proof(): number;
+    ubrn_uniffi_proofport_checksum_func_generate_halo2_proof(): number;
+    ubrn_uniffi_proofport_checksum_func_generate_noir_proof(): number;
+    ubrn_uniffi_proofport_checksum_func_get_noir_verification_key(): number;
+    ubrn_uniffi_proofport_checksum_func_get_num_public_inputs_from_circuit(): number;
+    ubrn_uniffi_proofport_checksum_func_mopro_hello_world(): number;
+    ubrn_uniffi_proofport_checksum_func_parse_proof_with_public_inputs(): number;
+    ubrn_uniffi_proofport_checksum_func_verify_circom_proof(): number;
+    ubrn_uniffi_proofport_checksum_func_verify_halo2_proof(): number;
+    ubrn_uniffi_proofport_checksum_func_verify_noir_proof(): number;
+    ubrn_uniffi_proofport_fn_func_combine_proof_and_public_inputs(proof: Uint8Array, publicInputs: Uint8Array, uniffi_out_err: UniffiRustCallStatus): Uint8Array;
+    ubrn_uniffi_proofport_fn_func_generate_circom_proof(zkeyPath: Uint8Array, circuitInputs: Uint8Array, proofLib: Uint8Array, uniffi_out_err: UniffiRustCallStatus): Uint8Array;
+    ubrn_uniffi_proofport_fn_func_generate_halo2_proof(srsPath: Uint8Array, pkPath: Uint8Array, circuitInputs: Uint8Array, uniffi_out_err: UniffiRustCallStatus): Uint8Array;
+    ubrn_uniffi_proofport_fn_func_generate_noir_proof(circuitPath: Uint8Array, srsPath: Uint8Array, inputs: Uint8Array, onChain: number, vk: Uint8Array, lowMemoryMode: number, uniffi_out_err: UniffiRustCallStatus): Uint8Array;
+    ubrn_uniffi_proofport_fn_func_get_noir_verification_key(circuitPath: Uint8Array, srsPath: Uint8Array, onChain: number, lowMemoryMode: number, uniffi_out_err: UniffiRustCallStatus): Uint8Array;
+    ubrn_uniffi_proofport_fn_func_get_num_public_inputs_from_circuit(circuitPath: Uint8Array, uniffi_out_err: UniffiRustCallStatus): number;
+    ubrn_uniffi_proofport_fn_func_mopro_hello_world(uniffi_out_err: UniffiRustCallStatus): Uint8Array;
+    ubrn_uniffi_proofport_fn_func_parse_proof_with_public_inputs(proof: Uint8Array, numPublicInputs: number, uniffi_out_err: UniffiRustCallStatus): Uint8Array;
+    ubrn_uniffi_proofport_fn_func_verify_circom_proof(zkeyPath: Uint8Array, proofResult: Uint8Array, proofLib: Uint8Array, uniffi_out_err: UniffiRustCallStatus): number;
+    ubrn_uniffi_proofport_fn_func_verify_halo2_proof(srsPath: Uint8Array, vkPath: Uint8Array, proof: Uint8Array, publicInput: Uint8Array, uniffi_out_err: UniffiRustCallStatus): number;
+    ubrn_uniffi_proofport_fn_func_verify_noir_proof(circuitPath: Uint8Array, proof: Uint8Array, onChain: number, vk: Uint8Array, lowMemoryMode: number, uniffi_out_err: UniffiRustCallStatus): number;
+    rustbuffer_alloc(n: number): Uint8Array;
+    rustbuffer_free(view: Uint8Array): void;
+}
+declare const getter: () => NativeModuleInterface;
+export default getter;
+//# sourceMappingURL=proofport-ffi.d.ts.map

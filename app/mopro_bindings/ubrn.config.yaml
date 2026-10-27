@@ -1,0 +1,10 @@
+# Relative to the PROJECT HOME, which is where the binding generator runs
+# from. It used to be an absolute path into a home directory that exists on
+# no machine now, so regenerating the bindings failed on a path nobody could
+# reach.
+rust:
+  directory: mopro
+  manifestPath: Cargo.toml
+
+android:
+    apiLevel: 28
