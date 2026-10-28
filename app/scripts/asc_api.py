@@ -145,6 +145,13 @@ def request(method: str, path: str, body=None):
             except Exception:
                 pass
             sys.exit(f'{method} {path} → {err.code}\n{detail}')
+        except urllib.error.URLError as err:
+            # No answer at all (DNS lookup failed, seen 2026-10-28). A read is
+            # retried; a write may have landed, so it is reported, not repeated.
+            if method == 'GET' and attempt < attempts:
+                time.sleep(5 * attempt)
+                continue
+            sys.exit(f'{method} {path}: {err.reason}')
     sys.exit(f'{method} {path}: no answer after {attempts} attempts')
 
 

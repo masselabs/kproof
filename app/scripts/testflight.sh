@@ -100,10 +100,23 @@ cat > "$WORK/ExportOptions.plist" <<PLIST
 PLIST
 
 echo "Uploading to App Store Connect (app $APP_ID)"
-env -u NODE_OPTIONS xcodebuild -exportArchive -archivePath "$ARCHIVE" \
+# Apple's gateway sometimes answers 502/503/504; xcodebuild then reports
+# "No Accounts with App Store Connect Access", which reads like a missing
+# account and is not one (seen 2026-10-28, Gateway Timeout). Retry only that.
+attempt=1
+until env -u NODE_OPTIONS xcodebuild -exportArchive -archivePath "$ARCHIVE" \
   -exportOptionsPlist "$WORK/ExportOptions.plist" -exportPath "$WORK/export" \
   -authenticationKeyPath "$KEY_FILE" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
-  > "$WORK/upload.log" 2>&1 || { echo "upload failed; tail of $WORK/upload.log:" >&2; tail -40 "$WORK/upload.log" >&2; exit 1; }
+  > "$WORK/upload.log" 2>&1; do
+  if [ "$attempt" -lt 4 ] && grep -q "Gateway Timeout\|Bad Gateway\|Service Unavailable" "$WORK/upload.log"; then
+    cp "$WORK/upload.log" "$WORK/upload.$attempt.log"
+    echo "App Store Connect gateway error (attempt $attempt); retrying in $((attempt * 30))s"
+    sleep $((attempt * 30))
+    attempt=$((attempt + 1))
+    continue
+  fi
+  echo "upload failed; tail of $WORK/upload.log:" >&2; tail -40 "$WORK/upload.log" >&2; exit 1
+done
 # xcodebuild's exit code is not the evidence: the log must say the upload succeeded.
 grep -q "Upload succeeded\|EXPORT SUCCEEDED" "$WORK/upload.log" || { echo "no upload confirmation in $WORK/upload.log:" >&2; tail -40 "$WORK/upload.log" >&2; exit 1; }
 echo "Uploaded KProof $VERSION ($BUILD_NUMBER); waiting for App Store Connect to list it"
