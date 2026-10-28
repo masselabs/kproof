@@ -21,6 +21,8 @@ export interface SessionState {
   pendingRequest: ProofRequest | null;
   /** A request this app created for itself from the 증명 tab; its answer is verified on the done screen. */
   inAppRequest: InAppRequest | null;
+  /** Bumped when an incoming link names the request already open, so it is brought to the front. */
+  requestFocus: number;
   error: ShownError | null;
 }
 
@@ -30,6 +32,7 @@ let state: SessionState = {
   security: null,
   pendingRequest: null,
   inAppRequest: null,
+  requestFocus: 0,
   error: null,
 };
 const listeners = new Set<() => void>();
@@ -71,6 +74,9 @@ export const session = {
   },
   setPendingRequest(request: ProofRequest | null): void {
     set({pendingRequest: request});
+  },
+  focusRequest(): void {
+    set({requestFocus: state.requestFocus + 1});
   },
   setInAppRequest(request: InAppRequest | null): void {
     set({inAppRequest: request});

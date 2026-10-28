@@ -42,6 +42,11 @@ export interface RelayDeps {
 /** In-memory claims for this runtime, taken before any await. */
 const claimed = new Set<string>();
 
+/** Whether this runtime has taken the terminal answer for the id. */
+export function isClaimed(requestId: string): boolean {
+  return claimed.has(requestId);
+}
+
 export function resetClaimsForTests(): void {
   claimed.clear();
 }

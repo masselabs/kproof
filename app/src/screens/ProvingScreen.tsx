@@ -72,6 +72,8 @@ export function ProvingScreen() {
         setFinished({card: params.card, provingMs: result.provingMs, verifyMs: result.verifyMs, at: new Date().toISOString()});
         return;
       }
+      // Another screen is already proving this request; it owns the outcome.
+      if ('inProgress' in result) return;
       session.showError(result.code, result.detail);
       if (result.answered) {
         // The request has its answer; nothing more can be done with it.

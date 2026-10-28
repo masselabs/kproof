@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {ko} from '../i18n/ko';
 import type {CardTypeKey} from '../config/cardTypes';
@@ -30,6 +30,13 @@ export function RequestScreen() {
   const [card, setCard] = useState<CardTypeKey | null>(null);
   const [now, setNow] = useState(Date.now());
   const [busy, setBusy] = useState(false);
+  // A double tap on approve opens one proving screen; set synchronously, cleared when this screen is shown again.
+  const approving = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      approving.current = false;
+    }, []),
+  );
 
   useEffect(() => {
     if (!request) return;
@@ -189,7 +196,11 @@ export function RequestScreen() {
             label={approveLabel}
             icon={<Icon name="face" size={20} color={colors.white} />}
             disabled={busy || feasibility === null || !feasibility.ok}
-            onPress={() => nav.navigate('Proving', {card})}
+            onPress={() => {
+              if (approving.current) return;
+              approving.current = true;
+              nav.navigate('Proving', {card});
+            }}
           />
         )}
         <TextButton testID="decline" label={ko.request.decline} onPress={() => onDecline('The person declined the request')} />

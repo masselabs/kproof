@@ -6,6 +6,11 @@ require Pod::Executable.execute_command('node', ['-p',
   )', __dir__]).strip
 
 platform :ios, min_ios_version_supported
+
+# The QR scanner only reads codes: no photo location tags (which would link
+# CoreLocation and need a location purpose string) and no frame processors.
+$VCEnableLocation = false
+$VCEnableFrameProcessors = false
 prepare_react_native_project!
 
 linkage = ENV['USE_FRAMEWORKS']

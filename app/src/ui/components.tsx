@@ -95,7 +95,7 @@ export function Chip({label, tone}: {label: string; tone: 'blue' | 'grey'}) {
   );
 }
 
-type IconName = 'card' | 'shield' | 'history' | 'gear' | 'plus' | 'back' | 'check' | 'face' | 'checkCircle' | 'spinner' | 'dot';
+type IconName = 'card' | 'shield' | 'history' | 'gear' | 'plus' | 'back' | 'close' | 'scan' | 'check' | 'face' | 'checkCircle' | 'spinner' | 'dot';
 
 export function Icon({name, size = 24, color = colors.ink}: {name: IconName; size?: number; color?: string}) {
   const common = {fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const};
@@ -142,6 +142,19 @@ export function Icon({name, size = 24, color = colors.ink}: {name: IconName; siz
       return (
         <Svg width={size} height={size} viewBox="0 0 24 24">
           <Path d="M15 5l-7 7 7 7" {...common} />
+        </Svg>
+      );
+    case 'close':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Path d="M6 6l12 12M18 6L6 18" {...common} />
+        </Svg>
+      );
+    case 'scan':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          {/* Viewfinder corners and a scan line, after Lucide's "scan-line" icon (ISC licence). */}
+          <Path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10" {...common} />
         </Svg>
       );
     case 'check':

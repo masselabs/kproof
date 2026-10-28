@@ -11,7 +11,7 @@ import {buildCircuitInputs, type CardSecrets} from '../domain/mdlInputs';
 import {canProve} from '../domain/predicates';
 import {ensureCircuitFiles, type FsPort} from './circuitFiles';
 import {bufferToHex, type ProverPort} from './prover';
-import {answerRequest, outcomeErrorCode, sendGenerating, type AnswerOutcome, type RelayDeps} from './relayAnswer';
+import {answerRequest, isClaimed, outcomeErrorCode, sendGenerating, type AnswerOutcome, type RelayDeps} from './relayAnswer';
 import {addHistory, type HistoryResult} from './history';
 import type {KeyValueStore} from './answeredStore';
 import type {Vault} from './vault';
@@ -37,7 +37,16 @@ export type FlowResult =
   /** Failed before anything was sent; the request is still open and can be declined. */
   | {ok: false; answered: false; code: ErrorCode; detail: string}
   /** The relay was told (or telling it failed); `code` is what the person sees. */
-  | {ok: false; answered: true; code: ErrorCode; detail: string; outcome: AnswerOutcome};
+  | {ok: false; answered: true; code: ErrorCode; detail: string; outcome: AnswerOutcome}
+  /** The same request is already being proved in this runtime; this call did nothing. */
+  | {ok: false; inProgress: true; code: 'E1007'; detail: string};
+
+/** Requests being approved right now. Claimed before the first await. */
+const approving = new Set<string>();
+
+export function resetApprovalsForTests(): void {
+  approving.clear();
+}
 
 function historyResult(outcome: AnswerOutcome, success: boolean): HistoryResult {
   if (outcome.kind === 'expired') return 'expired';
@@ -79,6 +88,30 @@ async function record(
 }
 
 export async function approveAndProve(
+  deps: AnswerFlowDeps,
+  request: ProofRequest,
+  cardType: CardTypeKey,
+  onStep: (step: ProvingStep) => void,
+): Promise<FlowResult> {
+  // A second approval of the same request (a double tap, a second screen) does nothing.
+  if (approving.has(request.requestId)) {
+    deps.log(`[prove] ${request.requestId} is already being approved; ignoring a second approval`);
+    return {ok: false, inProgress: true, code: 'E1007', detail: `request ${request.requestId} is already being approved`};
+  }
+  approving.add(request.requestId);
+  try {
+    // A request this phone already answered is never proved again.
+    if (isClaimed(request.requestId) || (await deps.relay.answered.has(request.requestId))) {
+      deps.log(`[prove] ${request.requestId} was already answered on this phone; not proving again`);
+      return {ok: false, answered: true, code: 'E1007', detail: `request ${request.requestId} was already answered`, outcome: {kind: 'duplicate'}};
+    }
+    return await approveOnce(deps, request, cardType, onStep);
+  } finally {
+    approving.delete(request.requestId);
+  }
+}
+
+async function approveOnce(
   deps: AnswerFlowDeps,
   request: ProofRequest,
   cardType: CardTypeKey,

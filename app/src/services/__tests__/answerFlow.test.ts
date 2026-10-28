@@ -179,3 +179,27 @@ describe('approveAndProve', () => {
     expect(await readHistory(kv)).toHaveLength(1);
   });
 });
+
+describe('one approval per request', () => {
+  test('a double approve sends one generating and one completed answer', async () => {
+    const {deps, posts, order} = setup();
+    const [a, b] = await Promise.all([
+      approveAndProve(deps, request, 'comrc_v1_5', () => undefined),
+      approveAndProve(deps, request, 'comrc_v1_5', () => undefined),
+    ]);
+    expect([a.ok, b.ok].filter(Boolean)).toHaveLength(1);
+    expect(b).toMatchObject({ok: false, inProgress: true, code: 'E1007'});
+    expect(posts.map((p) => p.status)).toEqual(['generating', 'completed']);
+    expect(order.filter((o) => o === 'auth')).toHaveLength(1);
+  });
+
+  test('after an approval ends, approving the answered request again sends nothing new', async () => {
+    const {deps, posts, order} = setup();
+    await approveAndProve(deps, request, 'comrc_v1_5', () => undefined);
+    order.length = 0;
+    const again = await approveAndProve(deps, request, 'comrc_v1_5', () => undefined);
+    expect(again).toMatchObject({ok: false, answered: true, code: 'E1007'});
+    expect(posts.map((p) => p.status)).toEqual(['generating', 'completed']);
+    expect(order).toEqual([]);
+  });
+});
