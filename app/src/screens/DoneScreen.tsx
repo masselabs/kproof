@@ -96,7 +96,7 @@ function Verification({verifyMs, inApp}: {verifyMs: number; inApp: InAppRequest 
                 <Txt size={14} color={colors.muted}>
                   {t('done.chain')}
                 </Txt>
-                <Txt size={14}>{`${lookupNetwork(BUILD_ENV).name} (${verdict.outcome.network.chainId})`}</Txt>
+                <Txt size={14} style={styles.value}>{`${lookupNetwork(BUILD_ENV).name} (${verdict.outcome.network.chainId})`}</Txt>
               </View>
               <Txt size={12} color={colors.muted}>
                 {verdict.outcome.network.verifier}
@@ -185,7 +185,9 @@ export function DoneScreen() {
             <Txt size={14} color={colors.muted}>
               {k}
             </Txt>
-            <Txt size={14}>{v}</Txt>
+            <Txt size={14} style={styles.value}>
+              {v}
+            </Txt>
           </View>
         ))}
       </View>
@@ -222,6 +224,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   row: {flexDirection: 'row', justifyContent: 'space-between', gap: 16},
+  // A long value (an English card name) wraps inside the row instead of running past it.
+  value: {flexShrink: 1, textAlign: 'right'},
   divider: {height: 1, backgroundColor: colors.line, marginVertical: 2},
   footer: {paddingHorizontal: 24, gap: 4, paddingBottom: 8},
 });

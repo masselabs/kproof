@@ -8,7 +8,10 @@
     "prompt": "Unlock KProof",
     "proofPrompt": "Confirm it's you before creating a proof",
     "cancel": "Cancel",
-    "wipe": "Erase saved IDs and start over"
+    "wipe": "Erase IDs and start over",
+    "wipeTitle": "Erase the saved IDs?",
+    "wipeBody": "The IDs saved on this phone can no longer be read. Erase them, then bring your ID in again from the mobile ID app. Your proof history is kept.",
+    "wipeConfirm": "Erase"
   },
   "biometry": {
     "FaceID": "Face ID",
@@ -30,8 +33,8 @@
     "addCard": "Add ID",
     "factsTitle": "What this ID can prove",
     "factsCount": "({{count}})",
-    "expand": "Show ▾",
-    "collapse": "Hide ▴",
+    "expand": "Show",
+    "collapse": "Hide",
     "hide": "Hide details",
     "show": "Show details",
     "prove": "Prove",
@@ -42,7 +45,7 @@
     "fieldBirth": "Date of birth",
     "fieldAddress": "Address",
     "fieldExpiry": "Expires",
-    "remove": "Remove the {{card}} from this phone",
+    "remove": "Remove ID",
     "removeTitle": "Remove the {{card}}?",
     "removeBody": "Only the copy saved on this phone is removed. Your ID in the mobile ID app stays as it is, and you can bring it in again whenever you need it. Your proof history is kept.",
     "removeConfirm": "Remove",
@@ -217,10 +220,10 @@
     "alwaysOn": "Always on",
     "cards": "IDs",
     "reimport": "Bring in again",
-    "deleteAll": "Remove IDs from this phone",
+    "deleteAll": "Remove all IDs",
     "deleteConfirmTitle": "Remove all IDs?",
     "deleteConfirmBody": "The ID details saved on this phone will be erased. To use them again, bring them in again from the mobile ID app.",
-    "deleteConfirm": "Remove",
+    "deleteConfirm": "Remove all",
     "deleteCancel": "Cancel",
     "general": "General",
     "language": "Language",
@@ -263,7 +266,7 @@
   "errorModal": {
     "code": "Error code {{code}}",
     "close": "Close",
-    "detail": "Details ▾"
+    "detail": "Details"
   },
   "errors": {
     "E1001": {"title": "Couldn't read the request", "body": "The proof request link is invalid. Start again from the service that asked."},

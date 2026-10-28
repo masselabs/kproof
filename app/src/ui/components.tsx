@@ -1,5 +1,5 @@
 import React from 'react';
-import {Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle} from 'react-native';
+import {Modal, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle} from 'react-native';
 import Svg, {Circle, Path, Rect, SvgXml} from 'react-native-svg';
 import {colors, font} from './theme';
 import {SYMBOL_COLOR, WORDMARK_COLOR} from './brandMarks';
@@ -68,16 +68,88 @@ export function TextButton(props: {label: string; onPress: () => void; color?: s
   );
 }
 
-export function OutlineButton(props: {label: string; onPress: () => void; style?: StyleProp<ViewStyle>}) {
+/** A button inside content (not a screen's main call to action): outline or filled, 48pt high. */
+export function InlineButton(props: {
+  label: string;
+  onPress: () => void;
+  variant?: 'outline' | 'filled';
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+}) {
+  const filled = props.variant === 'filled';
   return (
     <Pressable
+      testID={props.testID}
       accessibilityRole="button"
+      accessibilityState={{disabled: props.disabled === true}}
+      disabled={props.disabled}
       onPress={props.onPress}
-      style={({pressed}) => [styles.outline, {opacity: pressed ? 0.7 : 1}, props.style]}>
-      <Txt weight="semibold" size={15}>
+      style={({pressed}) => [
+        styles.inline,
+        filled ? styles.inlineFilled : styles.inlineOutline,
+        {opacity: props.disabled ? 0.4 : pressed ? 0.75 : 1},
+        props.style,
+      ]}>
+      <Txt weight={filled ? 'bold' : 'semibold'} size={15} color={filled ? colors.white : colors.ink} numberOfLines={1}>
         {props.label}
       </Txt>
     </Pressable>
+  );
+}
+
+export function OutlineButton(props: {label: string; onPress: () => void; disabled?: boolean; style?: StyleProp<ViewStyle>; testID?: string}) {
+  return <InlineButton {...props} variant="outline" />;
+}
+
+/**
+ * A destructive action: trash icon and a short red label on a red tint, so it
+ * reads as a button and never as a sentence. It only opens a ConfirmSheet; the
+ * removal itself happens there.
+ */
+export function DestructiveButton(props: {label: string; onPress: () => void; testID?: string; style?: StyleProp<ViewStyle>}) {
+  return (
+    <Pressable
+      testID={props.testID}
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      onPress={props.onPress}
+      style={({pressed}) => [styles.destructive, {opacity: pressed ? 0.7 : 1}, props.style]}>
+      <Icon name="trash" size={18} color={colors.red} />
+      <Txt weight="semibold" size={15} color={colors.red} numberOfLines={1}>
+        {props.label}
+      </Txt>
+    </Pressable>
+  );
+}
+
+/** The bottom sheet every destructive action goes through: what happens, then a red confirm and a cancel. */
+export function ConfirmSheet(props: {
+  visible: boolean;
+  title: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  testID?: string;
+}) {
+  return (
+    <Modal transparent visible={props.visible} animationType="fade" onRequestClose={props.onCancel}>
+      <View style={styles.scrim}>
+        <View style={styles.sheet} testID={props.testID}>
+          <Txt weight="bold" size={20}>
+            {props.title}
+          </Txt>
+          <Txt size={15} color={colors.muted}>
+            {props.body}
+          </Txt>
+          <View style={styles.sheetGap} />
+          <PrimaryButton label={props.confirmLabel} color={colors.red} onPress={props.onConfirm} testID={props.testID ? `${props.testID}-confirm` : undefined} />
+          <TextButton label={props.cancelLabel} onPress={props.onCancel} testID={props.testID ? `${props.testID}-cancel` : undefined} />
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -95,11 +167,30 @@ export function Chip({label, tone}: {label: string; tone: 'blue' | 'grey'}) {
   );
 }
 
-type IconName = 'card' | 'shield' | 'history' | 'gear' | 'plus' | 'back' | 'close' | 'scan' | 'check' | 'face' | 'checkCircle' | 'spinner' | 'dot';
+type IconName = 'trash' | 'chevronDown' | 'chevronRight' | 'card' | 'shield' | 'history' | 'gear' | 'plus' | 'back' | 'close' | 'scan' | 'check' | 'face' | 'checkCircle' | 'spinner' | 'dot';
 
 export function Icon({name, size = 24, color = colors.ink}: {name: IconName; size?: number; color?: string}) {
   const common = {fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const};
   switch (name) {
+    case 'trash':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          {/* After Lucide's "trash-2" icon (ISC licence). */}
+          <Path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" {...common} />
+        </Svg>
+      );
+    case 'chevronDown':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Path d="M6 9l6 6 6-6" {...common} />
+        </Svg>
+      );
+    case 'chevronRight':
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Path d="M9 6l6 6-6 6" {...common} />
+        </Svg>
+      );
     case 'card':
       return (
         <Svg width={size} height={size} viewBox="0 0 24 24">
@@ -204,15 +295,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   textButton: {height: 48, alignItems: 'center', justifyContent: 'center'},
-  outline: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.card,
+  inline: {height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12},
+  inlineOutline: {borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card},
+  inlineFilled: {backgroundColor: colors.blue},
+  destructive: {
+    alignSelf: 'center',
+    minHeight: 44,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    backgroundColor: colors.redTint,
   },
+  scrim: {flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end'},
+  sheet: {backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, gap: 8},
+  sheetGap: {height: 4},
   panel: {backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 12},
   chip: {borderRadius: 999, paddingVertical: 6, paddingHorizontal: 12},
 });

@@ -7,7 +7,7 @@ import {AppError, toAppError} from '../errors';
 import {keychain} from '../services/keychainAdapter';
 import {deviceSecurity, openVault, resetVault} from '../services/vault';
 import {session, useSession} from '../state/session';
-import {Icon, PrimaryButton, TextButton, Txt, Wordmark} from '../ui/components';
+import {ConfirmSheet, DestructiveButton, Icon, PrimaryButton, Txt, Wordmark} from '../ui/components';
 import {biometryLabel} from '../ui/describe';
 import {colors} from '../ui/theme';
 
@@ -17,6 +17,7 @@ export function LockScreen() {
   const security = useSession((s) => s.security);
   const [busy, setBusy] = useState(false);
   const [lastCode, setLastCode] = useState<string | null>(null);
+  const [confirmWipe, setConfirmWipe] = useState(false);
   const tried = useRef(false);
 
   const unlock = useCallback(async () => {
@@ -47,7 +48,9 @@ export function LockScreen() {
   // An unreadable vault (biometrics re-enrolled, or damaged) would keep the
   // person on this screen forever. Wiping needs no authentication: it reveals
   // nothing, and the ID is imported again from the mobile ID app.
+  // It still erases every saved ID, so it is confirmed first like every other removal.
   const wipe = useCallback(async () => {
+    setConfirmWipe(false);
     await resetVault(keychain);
     await unlock();
   }, [unlock]);
@@ -72,7 +75,7 @@ export function LockScreen() {
       </View>
       <View style={styles.bottom}>
         <PrimaryButton label={label} onPress={unlock} disabled={busy} testID="unlock" />
-        {lastCode === 'E4003' ? <TextButton label={t('lock.wipe')} onPress={wipe} color={colors.red} /> : null}
+        {lastCode === 'E4003' ? <DestructiveButton label={t('lock.wipe')} onPress={() => setConfirmWipe(true)} testID="lock-wipe" /> : null}
         {security?.kind === 'passcode' ? (
           <Txt size={13} color={colors.muted} style={styles.center}>
             {t('lock.passcodeNote')}
@@ -82,6 +85,16 @@ export function LockScreen() {
           {t('lock.rule')}
         </Txt>
       </View>
+      <ConfirmSheet
+        visible={confirmWipe}
+        title={t('lock.wipeTitle')}
+        body={t('lock.wipeBody')}
+        confirmLabel={t('lock.wipeConfirm')}
+        cancelLabel={t('lock.cancel')}
+        onConfirm={wipe}
+        onCancel={() => setConfirmWipe(false)}
+        testID="lock-wipe-sheet"
+      />
     </SafeAreaView>
   );
 }

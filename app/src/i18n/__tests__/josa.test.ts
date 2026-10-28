@@ -54,7 +54,7 @@ describe('Korean screen text built from run-time words', () => {
     expect(cards).toHaveLength(5);
     for (const name of cards) {
       expect(t('request.useCard', {card: name})).toBe(`${name}으로 증명`);
-      expect(t('home.removeTitle', {card: name})).toBe(`${name}을 지울까요?`);
+      expect(t('home.removeTitle', {card: name})).toBe(`${name}을 삭제할까요?`);
       expect(t('addId.mismatch', {chose: name, received: name, detail: 'x'})).toBe(
         `${name}을 골랐는데 모바일 신분증 앱이 ${name}을 보냈습니다. 모바일 신분증 앱에서 대표 신분증을 ${name}으로 바꾼 뒤 다시 가져오세요. (x)`,
       );

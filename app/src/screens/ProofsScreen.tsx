@@ -12,9 +12,9 @@ import {AppError, toAppError} from '../errors';
 import {createInAppRequest, type InAppAsk} from '../services/inAppProof';
 import {initialCard, nextCard, readPrefs, writePrefs, type CardPrefs} from '../state/prefs';
 import {session, useSession} from '../state/session';
-import {OutlineButton, Panel, Txt} from '../ui/components';
+import {Icon, OutlineButton, Panel, Txt} from '../ui/components';
 import {cardColor, cardPlain, regionName} from '../ui/describe';
-import {colors} from '../ui/theme';
+import {TAB_SCROLL_BOTTOM, colors} from '../ui/theme';
 
 /** Thresholds offered for an in-app age proof. */
 export const IN_APP_AGES = [14, 19, 20, 65] as const;
@@ -94,14 +94,23 @@ export function ProofsScreen() {
           return (
             <Panel key={circuit} style={styles.row}>
               <View style={styles.rowHead}>
-                <Txt weight="bold" size={16}>
+                <Txt weight="bold" size={16} style={styles.rowTitle}>
                   {t(`facts.${circuit}`)}
                 </Txt>
-                <Pressable accessibilityRole="button" style={styles.picker} onPress={() => cycle(circuit)} disabled={card === null}>
+                {/* Wraps under the title when both do not fit on one line (English card names are long). */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{disabled: card === null}}
+                  style={({pressed}) => [styles.picker, {opacity: pressed ? 0.7 : 1}]}
+                  hitSlop={{top: 4, bottom: 4}}
+                  onPress={() => cycle(circuit)}
+                  disabled={card === null}
+                  testID={`proofs-card-${circuit}`}>
                   <View style={[styles.swatch, {backgroundColor: card === null ? colors.faint : cardColor(card)}]} />
-                  <Txt weight="semibold" size={13}>
-                    {card === null ? t('proofs.noCard') : `${cardPlain(card)} ▾`}
+                  <Txt weight="semibold" size={13} style={styles.pickerLabel} numberOfLines={1}>
+                    {card === null ? t('proofs.noCard') : cardPlain(card)}
                   </Txt>
+                  {card === null || imported.length < 2 ? null : <Icon name="chevronDown" size={14} color={colors.muted} />}
                 </Pressable>
               </View>
               <Txt size={14} color={colors.muted}>
@@ -115,6 +124,7 @@ export function ProofsScreen() {
                       accessibilityRole="radio"
                       accessibilityState={{selected: age === n}}
                       onPress={() => setAge(n)}
+                      hitSlop={{top: 4, bottom: 4}}
                       style={[styles.option, age === n && styles.optionOn]}>
                       <Txt weight="semibold" size={13} color={age === n ? colors.white : colors.ink}>
                         {t('proofs.ageOption', {age: n})}
@@ -131,6 +141,7 @@ export function ProofsScreen() {
                       accessibilityRole="radio"
                       accessibilityState={{selected: targetRegion === r}}
                       onPress={() => setRegion(r)}
+                      hitSlop={{top: 4, bottom: 4}}
                       style={[styles.option, targetRegion === r && styles.optionOn]}>
                       <Txt weight="semibold" size={13} color={targetRegion === r ? colors.white : colors.ink}>
                         {regionName(r)}
@@ -142,6 +153,9 @@ export function ProofsScreen() {
               {card === null ? null : (
                 <OutlineButton
                   label={starting === circuit ? t('proofs.starting') : t('proofs.tryInApp')}
+                  // A region proof needs a province or city to ask about; until one is chosen there is nothing to try.
+                  disabled={circuit === 'mdl_kr_region' && targetRegion === null}
+                  testID={`proofs-try-${circuit}`}
                   onPress={() => {
                     if (starting !== null) return;
                     if (circuit === 'mdl_kr_ownership') void startInApp({circuitId: circuit});
@@ -167,13 +181,15 @@ export function ProofsScreen() {
 
 const styles = StyleSheet.create({
   root: {flex: 1, backgroundColor: colors.paper},
-  scroll: {padding: 16, paddingTop: 12, gap: 10},
+  scroll: {padding: 16, paddingTop: 12, paddingBottom: TAB_SCROLL_BOTTOM, gap: 10},
   howTo: {padding: 16},
   label: {marginTop: 8},
   row: {padding: 16, gap: 8},
-  rowHead: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8},
+  rowHead: {flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', columnGap: 8, rowGap: 8},
+  rowTitle: {maxWidth: '100%'},
   picker: {
-    height: 32,
+    minHeight: 36,
+    maxWidth: '100%',
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 999,
@@ -184,7 +200,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   swatch: {width: 8, height: 8, borderRadius: 999},
+  pickerLabel: {flexShrink: 1},
   options: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
-  option: {borderWidth: 1, borderColor: colors.line, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.paper},
+  option: {minHeight: 36, justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: 999, paddingHorizontal: 12, backgroundColor: colors.paper},
   optionOn: {backgroundColor: colors.blue, borderColor: colors.blue},
 });

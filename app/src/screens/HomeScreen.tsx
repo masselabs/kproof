@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import {Modal, Pressable, ScrollView, StyleSheet, View} from 'react-native';
+import React, {useRef, useState} from 'react';
+import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
@@ -14,9 +14,9 @@ import {toAppError} from '../errors';
 import {keychain} from '../services/keychainAdapter';
 import {withoutCard, writeVault} from '../services/vault';
 import type {RootStackParamList} from '../navigation/types';
-import {Chip, Icon, OutlineButton, Panel, PrimaryButton, TextButton, Txt, Wordmark} from '../ui/components';
+import {Chip, ConfirmSheet, DestructiveButton, Icon, InlineButton, Panel, PrimaryButton, Txt, Wordmark} from '../ui/components';
 import {birthDots, cardColor, cardName, cardShort, dateDots, maskName} from '../ui/describe';
-import {colors} from '../ui/theme';
+import {TAB_SCROLL_BOTTOM, colors} from '../ui/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -45,10 +45,14 @@ export function HomeScreen() {
   const [factsOpen, setFactsOpen] = useState(false);
   const [removing, setRemoving] = useState<CardTypeKey | null>(null);
 
+  // A second tap on confirm, before the sheet has closed, must not remove twice.
+  const removingNow = useRef(false);
+
   const remove = async () => {
     const type = removing;
     setRemoving(null);
-    if (type === null) return;
+    if (type === null || removingNow.current) return;
+    removingNow.current = true;
     try {
       // Written into the vault the person has unlocked; the in-memory copy follows the stored one.
       const current = await session.whenUnlocked();
@@ -59,6 +63,8 @@ export function HomeScreen() {
     } catch (err) {
       const e = toAppError(err, 'E5001');
       session.showError(e.code, e.detail);
+    } finally {
+      removingNow.current = false;
     }
   };
 
@@ -91,13 +97,20 @@ export function HomeScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           <Panel style={styles.facts}>
-            <Pressable accessibilityRole="button" style={styles.factsHead} onPress={() => setFactsOpen(!factsOpen)}>
-              <Txt weight="bold" size={15}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('home.factsTitle')} ${t('home.factsCount', {count: facts(frontCard).length})}`}
+              accessibilityHint={factsOpen ? t('home.collapse') : t('home.expand')}
+              accessibilityState={{expanded: factsOpen}}
+              style={styles.factsHead}
+              onPress={() => setFactsOpen(!factsOpen)}
+              testID="facts-toggle">
+              <Txt weight="bold" size={15} style={styles.flex}>
                 {t('home.factsTitle')} <Txt weight="bold" size={15} color={colors.blue}>{t('home.factsCount', {count: facts(frontCard).length})}</Txt>
               </Txt>
-              <Txt size={14} color={colors.muted}>
-                {factsOpen ? t('home.collapse') : t('home.expand')}
-              </Txt>
+              <View style={[styles.chevron, factsOpen && styles.chevronOpen]}>
+                <Icon name="chevronDown" size={20} color={colors.blue} />
+              </View>
             </Pressable>
             {factsOpen ? (
               <View style={styles.chips}>
@@ -160,34 +173,26 @@ export function HomeScreen() {
           </View>
 
           <View style={styles.actions}>
-            <OutlineButton label={hidden ? t('home.show') : t('home.hide')} onPress={() => setHidden(!hidden)} style={styles.flex} />
-            <Pressable
-              accessibilityRole="button"
-              style={styles.prove}
-              onPress={() => nav.navigate('Tabs', {screen: 'Proofs'})}>
-              <Txt weight="bold" size={15} color={colors.white}>
-                {t('home.prove')}
-              </Txt>
-            </Pressable>
+            <InlineButton label={hidden ? t('home.show') : t('home.hide')} onPress={() => setHidden(!hidden)} style={styles.flex} testID="toggle-details" />
+            <InlineButton label={t('home.prove')} variant="filled" onPress={() => nav.navigate('Tabs', {screen: 'Proofs'})} style={styles.flex} testID="prove" />
           </View>
-          <TextButton label={t('home.remove', {card: cardName(frontCard.type)})} color={colors.red} onPress={() => setRemoving(frontCard.type)} testID="remove-card" />
+
+          {/* Kept apart from the card's everyday actions, at the foot of the screen. */}
+          <View style={styles.spacer} />
+          <DestructiveButton label={t('home.remove')} onPress={() => setRemoving(frontCard.type)} testID="remove-card" />
         </ScrollView>
       )}
 
-      <Modal transparent visible={removing !== null} animationType="fade" onRequestClose={() => setRemoving(null)}>
-        <View style={styles.scrim}>
-          <View style={styles.sheet}>
-            <Txt weight="bold" size={20}>
-              {removing === null ? '' : t('home.removeTitle', {card: cardName(removing)})}
-            </Txt>
-            <Txt size={15} color={colors.muted}>
-              {t('home.removeBody')}
-            </Txt>
-            <PrimaryButton label={t('home.removeConfirm')} color={colors.red} onPress={remove} />
-            <TextButton label={t('home.removeCancel')} onPress={() => setRemoving(null)} />
-          </View>
-        </View>
-      </Modal>
+      <ConfirmSheet
+        visible={removing !== null}
+        title={removing === null ? '' : t('home.removeTitle', {card: cardName(removing)})}
+        body={t('home.removeBody')}
+        confirmLabel={t('home.removeConfirm')}
+        cancelLabel={t('home.removeCancel')}
+        onConfirm={remove}
+        onCancel={() => setRemoving(null)}
+        testID="remove-sheet"
+      />
     </SafeAreaView>
   );
 }
@@ -206,9 +211,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   empty: {padding: 24, gap: 12},
-  scroll: {paddingHorizontal: 16, paddingBottom: 24, gap: 16},
+  scroll: {flexGrow: 1, paddingHorizontal: 16, paddingBottom: TAB_SCROLL_BOTTOM, gap: 16},
   facts: {},
   factsHead: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, gap: 8},
+  chevron: {width: 24, height: 24, alignItems: 'center', justifyContent: 'center'},
+  chevronOpen: {transform: [{rotate: '180deg'}]},
   chips: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 16},
   tab: {
     height: 52,
@@ -245,7 +252,6 @@ const styles = StyleSheet.create({
   cardFoot: {borderTopWidth: 1, borderTopColor: colors.line, paddingHorizontal: 18, paddingVertical: 10},
   actions: {flexDirection: 'row', gap: 10},
   flex: {flex: 1},
-  scrim: {flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end'},
-  sheet: {backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, gap: 12},
-  prove: {flex: 1, height: 48, borderRadius: 12, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center'},
+  // With the gaps either side, at least 48pt between the card's actions and the remove button; more when the screen has room.
+  spacer: {flexGrow: 1, minHeight: 16},
 });

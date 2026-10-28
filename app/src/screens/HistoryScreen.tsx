@@ -7,7 +7,7 @@ import {kv} from '../app/deps';
 import {readHistory, type HistoryRecord} from '../services/history';
 import {Txt} from '../ui/components';
 import {cardColor, cardPlain, serviceName, shortStamp, shortWhat} from '../ui/describe';
-import {colors} from '../ui/theme';
+import {TAB_SCROLL_BOTTOM, colors} from '../ui/theme';
 
 export function HistoryScreen() {
   const {t} = useTranslation();
@@ -72,7 +72,7 @@ export function HistoryScreen() {
 
 const styles = StyleSheet.create({
   root: {flex: 1, backgroundColor: colors.paper},
-  list: {padding: 16, paddingTop: 12, gap: 8},
+  list: {padding: 16, paddingTop: 12, paddingBottom: TAB_SCROLL_BOTTOM, gap: 8},
   head: {gap: 4, marginBottom: 8},
   row: {
     flexDirection: 'row',

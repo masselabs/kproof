@@ -8,6 +8,7 @@ export const colors = {
   blueDark: '#00377C',
   blueTint: '#EDF3FA',
   red: '#CD2E3A',
+  redTint: '#FBEDEE',
   ink: '#161619',
   muted: '#62626E',
   line: '#DDDDE2',
@@ -24,6 +25,12 @@ export const font = {
   semibold: 'Pretendard-SemiBold',
   bold: 'Pretendard-Bold',
 } as const;
+
+/**
+ * Bottom padding for a tab screen's scroll content: the raised scan button
+ * stands about 26pt above the tab bar, and the last line must clear it.
+ */
+export const TAB_SCROLL_BOTTOM = 48;
 
 export const common = StyleSheet.create({
   screen: {flex: 1, backgroundColor: colors.paper},
