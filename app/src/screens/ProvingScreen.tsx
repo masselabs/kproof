@@ -81,6 +81,7 @@ export function ProvingScreen() {
         nav.navigate('Tabs', {screen: 'History'});
       } else {
         // Nothing was sent: back to the request, which can be retried or declined.
+        session.stopProving();
         nav.goBack();
       }
     })();

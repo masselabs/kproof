@@ -111,7 +111,7 @@ function useAppLifecycle() {
 }
 
 /** Shows a waiting request once the app is unlocked and navigation is ready. */
-function useRequestRouting(ready: boolean) {
+function useRequestRouting(ready: boolean, navTick: number) {
   const locked = useSession((s) => s.lock.locked);
   const pending = useSession((s) => s.pendingRequest?.requestId);
   const focus = useSession((s) => s.requestFocus);
@@ -121,20 +121,23 @@ function useRequestRouting(ready: boolean) {
     // The scanner replaces itself with the request (ScanScreen), so nothing stacks on it.
     if (route === 'Request' || route === 'Proving' || route === 'Done' || route === 'Scan') return;
     navigationRef.navigate('Request');
-  }, [ready, locked, pending, focus]);
+    // navTick: a request queued behind a finished proof becomes pending while
+    // the done screen is still current; it is shown once that screen is left.
+  }, [ready, locked, pending, focus, navTick]);
 }
 
 export default function App() {
   const locked = useSession((s) => s.lock.locked);
   const [ready, setReady] = React.useState(false);
+  const [navTick, setNavTick] = React.useState(0);
   useAppLifecycle();
-  useRequestRouting(ready);
+  useRequestRouting(ready, navTick);
 
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
       <View style={styles.root}>
-        <NavigationContainer ref={navigationRef} theme={theme} onReady={() => setReady(true)}>
+        <NavigationContainer ref={navigationRef} theme={theme} onReady={() => setReady(true)} onStateChange={() => setNavTick((t) => t + 1)}>
           <Stack.Navigator screenOptions={{headerShown: false, contentStyle: {backgroundColor: colors.paper}}}>
             <Stack.Screen name="Tabs" component={Tabs} />
             <Stack.Screen name="AddId" component={AddIdScreen} />

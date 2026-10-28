@@ -16,6 +16,12 @@ export const handleIncomingUrl = createIncomingHandler({
   isAnswering: isClaimed,
   pending: () => session.get().pendingRequest,
   setPending: (request) => session.setPendingRequest(request),
+  pendingIsBusy: () => {
+    const {pendingRequest, provingRequestId} = session.get();
+    return pendingRequest !== null && provingRequestId === pendingRequest.requestId;
+  },
+  queued: () => session.get().queuedRequest,
+  setQueued: (request) => session.setQueuedRequest(request),
   focus: () => session.focusRequest(),
   showError: (code, detail) => session.showError(code, detail),
   declineReplaced: async (previous) => {

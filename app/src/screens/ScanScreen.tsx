@@ -69,8 +69,9 @@ export function ScanScreen() {
         setAccepted(true);
         handleIncomingUrl(url).then(
           (outcome) => {
-            // A refused request already shows its error; the scanner gets out of its way.
-            if (outcome === 'refused') leave('back');
+            // A refused request already shows its error; a queued one is shown
+            // after the proof in progress. Either way the scanner gets out of the way.
+            if (outcome === 'refused' || outcome === 'queued') leave('back');
           },
           (err) => {
             console.log(`[scan] handling the scanned request failed: ${String(err)}`);

@@ -199,6 +199,7 @@ export function RequestScreen() {
             onPress={() => {
               if (approving.current) return;
               approving.current = true;
+              session.startProving(request.requestId);
               nav.navigate('Proving', {card});
             }}
           />
