@@ -142,6 +142,23 @@ describe('cardFromAnswer', () => {
       expect(cardFromAnswer({...licence, provider: 'coidentitydocument_v1.5'}, NOW, 'comdl_v1_5').type).toBe('comdl_v1_5');
     });
 
+    test('identitycard is the resident registration card', () => {
+      const resident = {...good, provider: 'coidentitydocument', vcTypeCodeList: '[identitycard]'};
+      const card = cardFromAnswer(resident, NOW, 'comrc_v1_5');
+      expect(card.type).toBe('comrc_v1_5');
+      expect(card.fields.ihidnum).toBeUndefined();
+      let caught: unknown;
+      try {
+        cardFromAnswer(resident, NOW, 'comdl_v1_5');
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeInstanceOf(CardMismatchError);
+      expect((caught as CardMismatchError).received).toBe('comrc_v1_5');
+      expect((caught as CardMismatchError).detail).toContain('[identitycard]');
+      expect(codeOf(() => cardFromAnswer({...resident, vcTypeCodeList: '[identitycard, mdriverlic]'}, NOW, 'comrc_v1_5')).code).toBe('E6005');
+    });
+
     test('a licence when another card was chosen is refused (E6007), naming what came back', () => {
       let caught: unknown;
       try {

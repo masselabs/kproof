@@ -110,11 +110,13 @@ export const GENERIC_PROVIDER = 'coidentitydocument';
  * The card codes in the answer's `vcTypeCodeList`, which names the card the
  * government app submitted when `provider` is the generic code. Only codes
  * seen in a real answer are listed: `mdriverlic` from a driver's licence import
- * on a real phone, 2026-10-28 (vcTypeCodeList = "[mdriverlic]"). Any other
- * code is refused by name, and is added here once an answer shows it.
+ * on a real phone, 2026-10-28 (vcTypeCodeList = "[mdriverlic]"), and
+ * `identitycard` from a resident registration card import, 2026-10-28. Any
+ * other code is refused by name, and is added here once an answer shows it.
  */
 export const VC_TYPE_CODES: Readonly<Record<string, CardTypeKey>> = {
   mdriverlic: 'comdl_v1_5',
+  identitycard: 'comrc_v1_5',
 };
 
 /** the relay sends the list as a string like "[mdriverlic]" (seen 2026-10-28); an array is accepted too. */
