@@ -12,6 +12,12 @@ export type CircuitId = 'mdl_kr_ownership' | 'mdl_kr_age' | 'mdl_kr_region';
 export interface CircuitLayout {
   /** The circuit's directory under circuits/ (its compiled files are in <dir>/target). */
   dir: string;
+  /**
+   * SHA-256 of the circuit's verification key (`<dir>/target/vk/vk`), the key
+   * every deployed verifier below embeds. Off-chain verification refuses any
+   * other key.
+   */
+  vkSha256: string;
   /** Total number of public input words. */
   publicInputs: number;
   /** Word offsets of each named public input. */
@@ -24,6 +30,7 @@ export interface CircuitLayout {
 export const CIRCUITS: Readonly<Record<CircuitId, CircuitLayout>> = {
   mdl_kr_ownership: {
     dir: 'mdl/kr-ownership',
+    vkSha256: '5a8ffb281836e1090f3f3362687d4fc088ef6b0a413a5c46fa869377071bba82',
     publicInputs: 97,
     scope: 0,
     nullifier: 32,
@@ -31,6 +38,7 @@ export const CIRCUITS: Readonly<Record<CircuitId, CircuitLayout>> = {
   },
   mdl_kr_age: {
     dir: 'mdl/kr-age',
+    vkSha256: 'b3207f9767612cf404ae48457c1dd2cf5fe600c71459a4381888de44656cb353',
     publicInputs: 66,
     scope: 0,
     nullifier: 32,
@@ -38,6 +46,7 @@ export const CIRCUITS: Readonly<Record<CircuitId, CircuitLayout>> = {
   },
   mdl_kr_region: {
     dir: 'mdl/kr-region',
+    vkSha256: 'd4a51be6959c5e10f93ac93b7a9fc6a8fa44c6e71730e43456c5e3a33b5cddde',
     publicInputs: 96,
     scope: 0,
     nullifier: 32,

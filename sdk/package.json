@@ -11,6 +11,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./offchain": {
+      "types": "./dist/offchain.d.ts",
+      "default": "./dist/offchain.js"
     }
   },
   "files": [
@@ -23,12 +27,13 @@
     "test:e2e": "vitest run -c vitest.config.e2e.ts"
   },
   "dependencies": {
+    "@aztec/bb.js": "4.2.0-aztecnr-rc.2",
     "@noble/hashes": "2.4.0",
     "socket.io-client": "4.8.3"
   },
   "devDependencies": {
+    "@types/node": "24.19.2",
     "typescript": "5.9.3",
-    "vitest": "4.1.12",
-    "@types/node": "24.19.2"
+    "vitest": "4.1.12"
   }
 }

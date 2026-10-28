@@ -37,10 +37,25 @@ relay.watch(requestId, async (status) => {
 
 모르는 회로 id와 환경 이름은 이름을 밝혀 오류를 냅니다.
 
+## 오프체인 검증
+
+```ts
+import { verifyOffChain } from '@kproof/sdk/offchain';
+
+const { valid, ms } = await verifyOffChain('mdl_kr_age', status.proof, status.publicInputs);
+```
+
+체인 없이, 호출한 곳에서 증명을 회로의 검증 키로 확인합니다. 검증 키는 앱이 회로
+파일을 받는 것과 같은 커밋의 이 저장소에서 읽고, SHA-256이 `CIRCUITS`에 고정한 값과
+다르면 거절합니다. 검증기(약 3MB)는 처음 호출할 때만 불러오므로 패키지 기본
+경로를 가져오는 것만으로는 내려받지 않습니다. 모르는 회로, 형식이 맞지 않는 증명이나
+공개 입력, 읽을 수 없거나 값이 다른 검증 키처럼 확인할 수 없을 때는 이유를 밝혀
+거절합니다.
+
 ## 테스트
 
 ```bash
-npm test            # 단위 테스트(RPC는 흉내), 모든 검사의 통과·실패
+npm test            # 단위 테스트(RPC는 흉내), 모든 검사의 통과·실패, 실제 증명의 오프체인 검증
 npm run test:e2e    # 실제 증명(fixtures/)을 배포된 검증 컨트랙트에 확인
 ```
 

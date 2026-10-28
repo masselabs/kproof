@@ -37,10 +37,26 @@ Every check is returned, passed or not; `valid` is true only when all pass.
 
 Unknown circuit ids and environments throw by name.
 
+## Off-chain verification
+
+```ts
+import { verifyOffChain } from '@kproof/sdk/offchain';
+
+const { valid, ms } = await verifyOffChain('mdl_kr_age', status.proof, status.publicInputs);
+```
+
+Checks the proof against the circuit's verification key where the caller runs,
+with no chain involved. The key is read from this repository at the commit the
+app downloads circuits from and refused unless its SHA-256 matches the one
+pinned in `CIRCUITS`. The verifier (about 3 MB) loads on the first call only,
+so importing the package index never pulls it in. It rejects, naming the
+reason, when the check cannot run: an unknown circuit, a proof or public inputs
+of the wrong shape, a key that cannot be read or does not match.
+
 ## Tests
 
 ```bash
-npm test            # unit (mocked RPC), every check passing and failing
+npm test            # unit (mocked RPC), every check passing and failing; off-chain on the real fixtures
 npm run test:e2e    # real proofs (fixtures/) against the deployed verifiers
 ```
 
