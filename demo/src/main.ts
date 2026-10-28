@@ -1,10 +1,12 @@
 import QRCode from 'qrcode';
 import './tokens.css';
 import './style.css';
-import { RelayClient, SI_DO, buildInputs, verifyAnswer, type CircuitId, type RequestStatus } from '@kproof/sdk';
+import { RelayClient, SI_DO, buildInputs, verifyAnswer, type CircuitId } from '@kproof/sdk';
+import { verifyOffChain } from '@kproof/sdk/offchain';
 import { CHOICES, lookupChoice } from './choices';
 import { ENVIRONMENTS, loadConfig } from './config';
 import { describeError } from './messages';
+import { createVerifier } from './verification';
 import { renderResult, statusText } from './view';
 
 const DAPP_NAME = 'KProof 데모';
@@ -84,22 +86,12 @@ function showFormError(message: string): void {
 }
 
 let stopWatching: (() => void) | undefined;
-let shown = 0;
 
-/** Shows the answer at once, then the SDK's verification of it when that returns. */
-function showResult(circuitId: CircuitId, inputs: Record<string, unknown>, s: RequestStatus): void {
-  const ticket = ++shown;
-  result.replaceChildren(renderResult(document, s));
+/** Shows the answer at once, then each verification as it settles; only the latest answer draws. */
+const verifier = createVerifier(verifyEnvironment, { verifyAnswer, verifyOffChain }, (s, v) => {
+  result.replaceChildren(renderResult(document, s, v));
   result.hidden = false;
-  if (s.status !== 'completed') return;
-  verifyAnswer({ circuitId, inputs }, s, { environment: verifyEnvironment })
-    .then((outcome) => {
-      if (ticket === shown) result.replaceChildren(renderResult(document, s, outcome));
-    })
-    .catch((err: unknown) => {
-      if (ticket === shown) statusLine.textContent = `검증하지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
-    });
-}
+});
 let busy = false;
 
 form.addEventListener('submit', async (e) => {
@@ -124,6 +116,7 @@ form.addEventListener('submit', async (e) => {
     await QRCode.toCanvas(qr, created.deepLink, { width: 220, margin: 1, errorCorrectionLevel: 'L' });
     openApp.href = created.deepLink;
     requestIdText.textContent = created.requestId;
+    verifier.cancel();
     result.hidden = true;
     result.replaceChildren();
     statusLine.textContent = statusText({ requestId: created.requestId, status: 'pending' });
@@ -133,7 +126,7 @@ form.addEventListener('submit', async (e) => {
       created.requestId,
       (s) => {
         statusLine.textContent = statusText(s);
-        if (s.status !== 'pending' && s.status !== 'generating') showResult(circuitId, inputs, s);
+        if (s.status !== 'pending' && s.status !== 'generating') verifier.show(circuitId, inputs, s);
       },
       (err) => {
         statusLine.textContent = `상태를 확인하지 못했습니다: ${err.message}`;
@@ -151,7 +144,7 @@ form.addEventListener('submit', async (e) => {
 el<HTMLButtonElement>('reset').addEventListener('click', () => {
   stopWatching?.();
   stopWatching = undefined;
-  shown++;
+  verifier.cancel();
   panel.hidden = true;
   form.hidden = false;
 });

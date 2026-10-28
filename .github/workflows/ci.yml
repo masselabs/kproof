@@ -51,4 +51,4 @@ jobs:
         working-directory: demo
         run: |
           VITE_KPROOF_API_URL=https://stg-api.koreanproof.com VITE_KPROOF_ENV=staging npm run build
-          test "$(cat dist/connect-src.txt)" = "https://stg-api.koreanproof.com wss://stg-api.koreanproof.com https://sepolia.base.org"
+          test "$(cat dist/connect-src.txt)" = "https://stg-api.koreanproof.com wss://stg-api.koreanproof.com https://sepolia.base.org https://raw.githubusercontent.com data:"

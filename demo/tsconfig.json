@@ -20,6 +20,9 @@
     "paths": {
       "@kproof/sdk": [
         "../sdk/src/index.ts"
+      ],
+      "@kproof/sdk/offchain": [
+        "../sdk/src/offchain.ts"
       ]
     }
   },

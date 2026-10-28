@@ -120,7 +120,14 @@ button.secondary:hover, .button.secondary:hover { background: var(--kp-color-blu
 .result { border-left: 4px solid var(--kp-color-line); padding: var(--kp-space-2) var(--kp-space-3); margin-bottom: var(--kp-space-4); }
 .result-title { font-weight: 700; margin: 0; }
 .result-completed { border-color: var(--kp-color-blue); }
-.result-error, .result-expired, .result-cancelled { border-color: var(--kp-color-red); }
+.result-error, .result-expired, .result-cancelled, .result-refused { border-color: var(--kp-color-red); }
+.result-checking { border-color: var(--kp-color-blue); }
+.result-verified { border-color: var(--kp-color-blue); }
+.verify-title { font-size: 15px; margin: var(--kp-space-3) 0 0; }
+.meta dd.pass { color: var(--kp-color-blue); font-weight: 600; }
+.meta dd.fail { color: var(--kp-color-red); font-weight: 600; }
+.meta dd.checking { color: var(--kp-color-muted); }
+.meta.checks { border-top: 1px solid var(--kp-color-line); padding-top: var(--kp-space-2); }
 
 .foot { max-width: 760px; margin: 0 auto; padding: var(--kp-space-4) var(--kp-space-3) var(--kp-space-6); color: var(--kp-color-muted); font-size: 13px; }
 

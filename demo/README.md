@@ -6,8 +6,11 @@ A static page that plays the part of a service asking for a Korea Mobile ID
 proof, built on `@kproof/sdk` (`../sdk`). It picks a question (ID ownership, minimum age, or si/do of residence),
 asks kproof-server's relay for a request, shows the deep link as a QR code and
 a button, and waits for the KProof app's answer over Socket.IO, polling as a
-fallback. When an answer arrives, the SDK verifies it (scope, age or region,
-year, and the verifier contract on Base Sepolia) and the page lists every check.
+fallback. When an answer arrives, the page verifies it twice and shows each
+result as it settles: off-chain in the browser against the circuit's
+verification key, and on-chain through the circuit's verifier contract on Base
+Sepolia (chain and contract address shown), followed by every other check
+(scope, age or region, year).
 
 Staging: https://stg-demo.koreanproof.com, talking to https://stg-api.koreanproof.com.
 
@@ -39,9 +42,11 @@ checks that `/version.txt` on the public page reports the commit it built.
 | Input rules, the relay client and answer verification | the SDK's own tests (`sdk/`) |
 | Every SDK error code and check has Korean words; an unknown one throws | `src/__tests__/view.test.ts` |
 | Server text never becomes markup; completed answers show proof size and input count, and say what is missing | `src/__tests__/view.test.ts` |
+| Off-chain and on-chain lines: checking, passed with time / chain / contract, failed with the reason (verifier load failure, RPC failure, rejected proof); verified only when both pass | `src/__tests__/view.test.ts` |
+| Both verifications start for a completed answer only; an older request's late result never overwrites a newer one; nothing draws after reset; a check that throws settles as failed | `src/__tests__/verification.test.ts` |
 | Real relay: each circuit's deep link carries exactly the request built; app answers generating then cancelled reach the page; a second answer is refused; hostile error text stays data; unknown circuit and a completed answer without a proof are refused | `e2e/demo.e2e.test.ts` |
 | A completed answer with a REAL proof: relay → SDK → Base Sepolia verifier returns true; only the unknown fixture scope fails | `e2e/demo.e2e.test.ts` |
-| Served page: built for this relay only, CSP limits connections to the relay and the verification RPC, brand assets and font served | `e2e/demo.e2e.test.ts` |
+| Served page: built for this relay only, CSP limits connections to the relay, the verification RPC and where verification keys are read, brand assets and font served | `e2e/demo.e2e.test.ts` |
 
 Brand assets in `public/brand` and the Pretendard font in `public/fonts` come
 from the KProof brand kit v1.0 (`masselabs/kproof-website` `brand/`, commit

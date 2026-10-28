@@ -71,7 +71,8 @@ describe('served page', () => {
   it('sends a content security policy that only lets the page talk to its relay', () => {
     const csp = headers.get('content-security-policy') ?? '';
     expect(csp).toContain("default-src 'self'");
-    expect(csp).toContain(`connect-src 'self' ${API} ${API.replace(/^http/, 'ws')} https://sepolia.base.org;`);
+    expect(csp).toContain(`connect-src 'self' ${API} ${API.replace(/^http/, 'ws')} https://sepolia.base.org https://raw.githubusercontent.com data:;`);
+    expect(csp).toContain("script-src 'self' 'wasm-unsafe-eval';");
     expect(headers.get('x-content-type-options')).toBe('nosniff');
   });
 
