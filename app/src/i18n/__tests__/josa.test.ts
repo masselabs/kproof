@@ -1,7 +1,10 @@
-import {josa} from '../josa';
-import {ko} from '../ko';
+jest.mock('react-native', () => ({Platform: {OS: 'ios'}, NativeModules: {}}));
+
+import {isParticle, josa} from '../josa';
+import i18n from '..';
+import ko from '../locales/ko.json';
+import en from '../locales/en.json';
 import {SI_DO} from '../../domain/regions';
-import {IN_APP_DAPP_NAME} from '../../services/inAppProof';
 
 function endsInConsonant(word: string): boolean {
   const c = word.codePointAt(word.length - 1) ?? 0;
@@ -42,41 +45,62 @@ describe('josa', () => {
   });
 });
 
-describe('screen text built from run-time words', () => {
+describe('Korean screen text built from run-time words', () => {
+  const t = i18n.getFixedT('ko');
+  const cards = Object.values(ko.cardTypes).map((c) => c.name);
+  const biometry = Object.values(ko.biometry);
+
   test('every card name', () => {
-    for (const t of Object.values(ko.cardTypes)) {
-      expect(ko.request.useCard(t.name)).toBe(`${t.name}으로 증명`);
-      expect(ko.home.removeTitle(t.name)).toBe(`${t.name}을 지울까요?`);
-      expect(ko.addId.mismatch(t.name, t.name, 'x')).toBe(
-        `${t.name}을 골랐는데 모바일 신분증 앱이 ${t.name}을 보냈습니다. 모바일 신분증 앱에서 대표 신분증을 ${t.name}으로 바꾼 뒤 다시 가져오세요. (x)`,
+    expect(cards).toHaveLength(5);
+    for (const name of cards) {
+      expect(t('request.useCard', {card: name})).toBe(`${name}으로 증명`);
+      expect(t('home.removeTitle', {card: name})).toBe(`${name}을 지울까요?`);
+      expect(t('addId.mismatch', {chose: name, received: name, detail: 'x'})).toBe(
+        `${name}을 골랐는데 모바일 신분증 앱이 ${name}을 보냈습니다. 모바일 신분증 앱에서 대표 신분증을 ${name}으로 바꾼 뒤 다시 가져오세요. (x)`,
       );
     }
   });
 
   test('every region', () => {
     for (const r of SI_DO) {
-      expect(ko.cannot.regionDiffers(r)).toBe(`이 신분증의 주소는 ${r}${endsInConsonant(r) ? '이' : '가'} 아닙니다.`);
+      expect(t('cannot.regionDiffers', {region: r})).toBe(`이 신분증의 주소는 ${r}${endsInConsonant(r) ? '이' : '가'} 아닙니다.`);
     }
   });
 
   test('every biometry label', () => {
-    expect(ko.lock.unlockBiometric(ko.biometry.Fingerprint)).toBe('지문으로 잠금 해제');
-    expect(ko.request.approve(ko.biometry.Face)).toBe('얼굴 인식으로 확인하고 증명');
-    expect(ko.request.approve(ko.biometry.FaceID)).toBe('Face ID로 확인하고 증명');
-    for (const label of Object.values(ko.biometry)) {
-      expect(ko.lock.unlockBiometric(label)).toBe(`${label}${endsInConsonant(label) ? '으로' : '로'} 잠금 해제`);
+    expect(t('lock.unlockBiometric', {kind: ko.biometry.Fingerprint})).toBe('지문으로 잠금 해제');
+    expect(t('request.approve', {kind: ko.biometry.Face})).toBe('얼굴 인식으로 확인하고 증명');
+    expect(t('request.approve', {kind: ko.biometry.FaceID})).toBe('Face ID로 확인하고 증명');
+    for (const label of biometry) {
+      expect(t('lock.unlockBiometric', {kind: label})).toBe(`${label}${endsInConsonant(label) ? '으로' : '로'} 잠금 해제`);
     }
   });
 
   test('the done line', () => {
-    expect(ko.done.body(IN_APP_DAPP_NAME, ko.facts.mdl_kr_ownership)).toBe('KProof 앱은 본인 확인만 받았습니다.');
-    expect(ko.done.body('데모 쇼핑몰', '나이')).toBe('데모 쇼핑몰은 나이만 받았습니다.');
-    expect(ko.done.body('데모 사이트', '나이')).toBe('데모 사이트는 나이만 받았습니다.');
+    expect(t('done.body', {who: ko.request.inAppName, what: ko.facts.mdl_kr_ownership})).toBe('KProof 앱은 본인 확인만 받았습니다.');
+    expect(t('done.body', {who: '데모 쇼핑몰', what: '나이'})).toBe('데모 쇼핑몰은 나이만 받았습니다.');
+    expect(t('done.body', {who: '데모 사이트', what: '나이'})).toBe('데모 사이트는 나이만 받았습니다.');
   });
 
-  test('off-chain time never reads 0.0초', () => {
-    expect(ko.done.passIn(0)).toBe('통과 · 0.01초 미만');
-    expect(ko.done.passIn(42)).toBe('통과 · 0.04초');
-    expect(ko.done.passIn(1830)).toBe('통과 · 1.8초');
+  test('every josa use in ko.json resolves through the formatter, never raw', () => {
+    // A misspelled formatter name or particle makes i18next print the bare
+    // word, which reads as broken Korean rather than failing.
+    const raw = JSON.stringify(ko);
+    const uses = [...raw.matchAll(/\{\{\w+, josa\(p: ([^)]*)\)\}\}/g)].map((m) => m[1]);
+    expect(uses.length).toBeGreaterThanOrEqual(9);
+    for (const p of uses) expect(isParticle(p)).toBe(true);
+    expect(raw).not.toMatch(/josa(?!\(p: )/);
+  });
+});
+
+describe('English never runs Korean particles', () => {
+  test('en.json has no josa formatter', () => {
+    expect(JSON.stringify(en)).not.toMatch(/josa/);
+  });
+
+  test('English sentences take the word as it is', () => {
+    const t = i18n.getFixedT('en');
+    expect(t('request.useCard', {card: en.cardTypes.comdl_v1_5.name})).toBe("Prove with your Mobile Driver's License");
+    expect(t('lock.unlockBiometric', {kind: en.biometry.Fingerprint})).toBe('Unlock with fingerprint');
   });
 });

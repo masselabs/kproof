@@ -1,0 +1,3 @@
+/* Permission texts shown by iOS in Korean. Keys mirror Info.plist. */
+"NSCameraUsageDescription" = "서비스가 보여 주는 증명 요청 QR 코드를 스캔할 때 카메라를 씁니다.";
+"NSFaceIDUsageDescription" = "저장한 신분증을 열고 증명을 만들기 전에 본인을 확인합니다.";

@@ -1,0 +1,3 @@
+/* Permission texts shown by iOS in English. Keys mirror Info.plist. */
+"NSCameraUsageDescription" = "KProof uses the camera to scan the proof request QR code a service shows you.";
+"NSFaceIDUsageDescription" = "KProof confirms it's you before opening your saved ID and before creating a proof.";

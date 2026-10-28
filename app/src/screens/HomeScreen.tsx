@@ -4,7 +4,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Svg, {Circle, Path} from 'react-native-svg';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
+import i18n from '../i18n';
 import {CARD_ORDER, type CardTypeKey} from '../config/cardTypes';
 import {CIRCUIT_IDS} from '../config/circuits';
 import type {StoredCard} from '../services/importCard';
@@ -21,20 +22,21 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 function facts(card: StoredCard): string[] {
   // Region needs an address on the card; the rest every card can prove.
-  return CIRCUIT_IDS.filter((c) => c !== 'mdl_kr_region' || card.fields.address !== undefined).map((c) => ko.facts[c]);
+  return CIRCUIT_IDS.filter((c) => c !== 'mdl_kr_region' || card.fields.address !== undefined).map((c) => i18n.t(`facts.${c}`));
 }
 
 function fieldRows(card: StoredCard, hidden: boolean): Array<{k: string; v: string}> {
   const f = card.fields;
   const rows: Array<{k: string; v: string}> = [
-    {k: ko.home.fieldName, v: hidden ? maskName(f.name) : f.name},
-    {k: ko.home.fieldBirth, v: hidden ? '••••.••.••' : birthDots(f.birth)},
+    {k: i18n.t('home.fieldName'), v: hidden ? maskName(f.name) : f.name},
+    {k: i18n.t('home.fieldBirth'), v: hidden ? '••••.••.••' : birthDots(f.birth)},
   ];
-  if (f.address !== undefined) rows.push({k: ko.home.fieldAddress, v: hidden ? '••••' : f.address});
+  if (f.address !== undefined) rows.push({k: i18n.t('home.fieldAddress'), v: hidden ? '••••' : f.address});
   return rows;
 }
 
 export function HomeScreen() {
+  const {t} = useTranslation();
   const nav = useNavigation<Nav>();
   const vault = useSession((s) => s.vault);
   const cards = CARD_ORDER.map((k) => vault?.cards.find((c) => c.type === k)).filter((c): c is StoredCard => c !== undefined);
@@ -68,7 +70,7 @@ export function HomeScreen() {
         <Wordmark width={104} />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={ko.home.addCard}
+          accessibilityLabel={t('home.addCard')}
           style={styles.round}
           onPress={() => nav.navigate('AddId')}
           testID="add-card">
@@ -79,22 +81,22 @@ export function HomeScreen() {
       {frontCard === undefined ? (
         <View style={styles.empty}>
           <Txt weight="bold" size={20}>
-            {ko.home.emptyTitle}
+            {t('home.emptyTitle')}
           </Txt>
           <Txt size={15} color={colors.muted}>
-            {ko.home.emptyBody}
+            {t('home.emptyBody')}
           </Txt>
-          <PrimaryButton label={ko.home.addCard} onPress={() => nav.navigate('AddId')} />
+          <PrimaryButton label={t('home.addCard')} onPress={() => nav.navigate('AddId')} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           <Panel style={styles.facts}>
             <Pressable accessibilityRole="button" style={styles.factsHead} onPress={() => setFactsOpen(!factsOpen)}>
               <Txt weight="bold" size={15}>
-                {ko.home.factsTitle} <Txt weight="bold" size={15} color={colors.blue}>{ko.home.factsCount(facts(frontCard).length)}</Txt>
+                {t('home.factsTitle')} <Txt weight="bold" size={15} color={colors.blue}>{t('home.factsCount', {count: facts(frontCard).length})}</Txt>
               </Txt>
               <Txt size={14} color={colors.muted}>
-                {factsOpen ? ko.home.collapse : ko.home.expand}
+                {factsOpen ? t('home.collapse') : t('home.expand')}
               </Txt>
             </Pressable>
             {factsOpen ? (
@@ -151,24 +153,24 @@ export function HomeScreen() {
               </View>
               <View style={styles.cardFoot}>
                 <Txt size={12} color={colors.muted}>
-                  {ko.home.receivedFrom(dateDots(frontCard.importedAt))}
+                  {t('home.receivedFrom', {date: dateDots(frontCard.importedAt)})}
                 </Txt>
               </View>
             </View>
           </View>
 
           <View style={styles.actions}>
-            <OutlineButton label={hidden ? ko.home.show : ko.home.hide} onPress={() => setHidden(!hidden)} style={styles.flex} />
+            <OutlineButton label={hidden ? t('home.show') : t('home.hide')} onPress={() => setHidden(!hidden)} style={styles.flex} />
             <Pressable
               accessibilityRole="button"
               style={styles.prove}
               onPress={() => nav.navigate('Tabs', {screen: 'Proofs'})}>
               <Txt weight="bold" size={15} color={colors.white}>
-                {ko.home.prove}
+                {t('home.prove')}
               </Txt>
             </Pressable>
           </View>
-          <TextButton label={ko.home.remove(cardName(frontCard.type))} color={colors.red} onPress={() => setRemoving(frontCard.type)} testID="remove-card" />
+          <TextButton label={t('home.remove', {card: cardName(frontCard.type)})} color={colors.red} onPress={() => setRemoving(frontCard.type)} testID="remove-card" />
         </ScrollView>
       )}
 
@@ -176,13 +178,13 @@ export function HomeScreen() {
         <View style={styles.scrim}>
           <View style={styles.sheet}>
             <Txt weight="bold" size={20}>
-              {removing === null ? '' : ko.home.removeTitle(cardName(removing))}
+              {removing === null ? '' : t('home.removeTitle', {card: cardName(removing)})}
             </Txt>
             <Txt size={15} color={colors.muted}>
-              {ko.home.removeBody}
+              {t('home.removeBody')}
             </Txt>
-            <PrimaryButton label={ko.home.removeConfirm} color={colors.red} onPress={remove} />
-            <TextButton label={ko.home.removeCancel} onPress={() => setRemoving(null)} />
+            <PrimaryButton label={t('home.removeConfirm')} color={colors.red} onPress={remove} />
+            <TextButton label={t('home.removeCancel')} onPress={() => setRemoving(null)} />
           </View>
         </View>
       </Modal>

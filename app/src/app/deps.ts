@@ -4,7 +4,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {InteractionManager, Linking, Platform} from 'react-native';
 import {currentEnv} from '../config/buildEnv';
-import {ko} from '../i18n/ko';
+import i18n from '../i18n';
 import {createAnsweredStore, type KeyValueStore} from '../services/answeredStore';
 import type {AnswerFlowDeps} from '../services/answerFlow';
 import {fsAdapter} from '../services/fsAdapter';
@@ -27,7 +27,7 @@ export const relayDeps: RelayDeps = {fetch: (...a) => fetch(...a), answered, log
 
 export const answerFlowDeps: AnswerFlowDeps = {
   relay: relayDeps,
-  openVault: () => openVault(keychain, {title: ko.lock.proofPrompt, cancel: ko.lock.cancel}),
+  openVault: () => openVault(keychain, {title: i18n.t('lock.proofPrompt'), cancel: i18n.t('lock.cancel')}),
   fs: fsAdapter,
   prover: moproAdapter,
   circuits: currentEnv().circuits,

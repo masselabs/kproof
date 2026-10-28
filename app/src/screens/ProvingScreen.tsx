@@ -4,13 +4,13 @@ import Svg, {Circle} from 'react-native-svg';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
 import {answerFlowDeps} from '../app/deps';
 import {approveAndProve, type ProvingStep} from '../services/answerFlow';
 import {session, useSession} from '../state/session';
 import type {RootStackParamList} from '../navigation/types';
 import {Icon, Txt} from '../ui/components';
-import {shortWhat} from '../ui/describe';
+import {serviceName, shortWhat} from '../ui/describe';
 import {colors} from '../ui/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -35,6 +35,7 @@ const RADIUS = (RING - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export function ProvingScreen() {
+  const {t} = useTranslation();
   const nav = useNavigation<Nav>();
   const {params} = useRoute<RouteProp<RootStackParamList, 'Proving'>>();
   const request = useSession((s) => s.pendingRequest);
@@ -88,13 +89,13 @@ export function ProvingScreen() {
   }, [nav, params.card, request]);
 
   if (!request) return <View style={styles.root} />;
-  const who = request.dappName ?? ko.request.unnamed;
+  const who = serviceName(request.dappName);
   const labels: Record<ProvingStep, string> = {
-    files: ko.proving.steps.files,
-    inputs: ko.proving.steps.inputs(shortWhat(request.inputs)),
-    prove: ko.proving.steps.prove,
-    verify: ko.proving.steps.verify,
-    send: ko.proving.steps.send(who),
+    files: t('proving.steps.files'),
+    inputs: t('proving.steps.inputs', {what: shortWhat(request.inputs)}),
+    prove: t('proving.steps.prove'),
+    verify: t('proving.steps.verify'),
+    send: t('proving.steps.send', {who}),
   };
   const current = step === null ? -1 : ORDER.indexOf(step);
 
@@ -122,10 +123,10 @@ export function ProvingScreen() {
       </View>
       <View style={styles.text}>
         <Txt weight="bold" size={24} style={styles.center}>
-          {ko.proving.title}
+          {t('proving.title')}
         </Txt>
         <Txt size={15} color={colors.muted} style={styles.center}>
-          {ko.proving.body}
+          {t('proving.body')}
         </Txt>
       </View>
       <View style={styles.steps}>

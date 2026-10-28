@@ -6,16 +6,26 @@ import {verifyInAppAnswer, type InAppRequest} from '../services/inAppProof';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation, useRoute, type RouteProp} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
+import i18n from '../i18n';
 import {session, useSession} from '../state/session';
 import type {RootStackParamList} from '../navigation/types';
 import {Icon, PrimaryButton, TextButton, Txt} from '../ui/components';
-import {cardName, dateDots, shortWhat} from '../ui/describe';
+import {cardName, dateDots, durationText, serviceName, shortWhat} from '../ui/describe';
 import {colors} from '../ui/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 type Verdict = {state: 'running'} | {state: 'done'; outcome: VerifyOutcome} | {state: 'failed'; detail: string};
+
+const CHECK_NAMES = ['status', 'circuit', 'public_input_count', 'public_input_format', 'scope', 'age_threshold', 'current_year', 'region', 'on_chain'] as const;
+type CheckName = (typeof CHECK_NAMES)[number];
+
+/** A verification check's label; a check this build has no label for shows its own name. */
+function checkName(name: string): string {
+  if (!(CHECK_NAMES as readonly string[]).includes(name)) return name;
+  return i18n.t(`done.check.${name as CheckName}`);
+}
 
 function StatusText({ok, text}: {ok: boolean | null; text: string}) {
   return (
@@ -31,6 +41,7 @@ function StatusText({ok, text}: {ok: boolean | null; text: string}) {
  * relay and asks the circuit's verifier contract, as a service would.
  */
 function Verification({verifyMs, inApp}: {verifyMs: number; inApp: InAppRequest | null}) {
+  const {t} = useTranslation();
   const [verdict, setVerdict] = useState<Verdict>({state: 'running'});
   useEffect(() => {
     if (inApp === null) return;
@@ -57,33 +68,33 @@ function Verification({verifyMs, inApp}: {verifyMs: number; inApp: InAppRequest 
   return (
     <View style={styles.table} testID="verification">
       <Txt weight="bold" size={15}>
-        {ko.done.verification}
+        {t('done.verification')}
       </Txt>
       <View style={styles.row}>
         <Txt size={14} color={colors.muted}>
-          {ko.done.offChain}
+          {t('done.offChain')}
         </Txt>
-        <StatusText ok text={ko.done.passIn(verifyMs)} />
+        <StatusText ok text={t('done.passIn', {time: durationText(verifyMs)})} />
       </View>
       {inApp !== null ? (
         <>
           <View style={styles.row}>
             <Txt size={14} color={colors.muted}>
-              {ko.done.onChain}
+              {t('done.onChain')}
             </Txt>
             {verdict.state === 'running' ? (
-              <StatusText ok={null} text={ko.done.checking} />
+              <StatusText ok={null} text={t('done.checking')} />
             ) : verdict.state === 'failed' ? (
-              <StatusText ok={false} text={ko.done.fail} />
+              <StatusText ok={false} text={t('done.fail')} />
             ) : (
-              <StatusText ok={onChain?.ok === true} text={onChain?.ok === true ? ko.done.pass : ko.done.fail} />
+              <StatusText ok={onChain?.ok === true} text={onChain?.ok === true ? t('done.pass') : t('done.fail')} />
             )}
           </View>
           {verdict.state === 'done' ? (
             <>
               <View style={styles.row}>
                 <Txt size={14} color={colors.muted}>
-                  {ko.done.chain}
+                  {t('done.chain')}
                 </Txt>
                 <Txt size={14}>{`${lookupNetwork(BUILD_ENV).name} (${verdict.outcome.network.chainId})`}</Txt>
               </View>
@@ -94,16 +105,16 @@ function Verification({verifyMs, inApp}: {verifyMs: number; inApp: InAppRequest 
               {others.map((c) => (
                 <View key={c.name} style={styles.row}>
                   <Txt size={13} color={colors.muted}>
-                    {ko.done.check[c.name]}
+                    {checkName(c.name)}
                   </Txt>
-                  <StatusText ok={c.ok} text={c.ok ? ko.done.pass : ko.done.fail} />
+                  <StatusText ok={c.ok} text={c.ok ? t('done.pass') : t('done.fail')} />
                 </View>
               ))}
               {verdict.outcome.checks
                 .filter((c) => !c.ok)
                 .map((c) => (
                   <Txt key={`${c.name}-detail`} size={12} color={colors.red}>
-                    {`${ko.done.check[c.name]}: ${c.detail}`}
+                    {`${checkName(c.name)}: ${c.detail}`}
                   </Txt>
                 ))}
             </>
@@ -120,12 +131,13 @@ function Verification({verifyMs, inApp}: {verifyMs: number; inApp: InAppRequest 
 }
 
 export function DoneScreen() {
+  const {t} = useTranslation();
   const nav = useNavigation<Nav>();
   const {params} = useRoute<RouteProp<RootStackParamList, 'Done'>>();
   const request = useSession((s) => s.pendingRequest);
   const inApp = useSession((s) => s.inAppRequest);
   if (!request) return <View style={styles.root} />;
-  const who = request.dappName ?? ko.request.unnamed;
+  const who = serviceName(request.dappName);
   const what = shortWhat(request.inputs);
   const at = new Date(params.at);
 
@@ -148,11 +160,11 @@ export function DoneScreen() {
   };
 
   const rows: Array<[string, string]> = [
-    [ko.done.to, who],
-    [ko.done.what, what],
-    [ko.done.card, cardName(params.card)],
-    [ko.done.took, ko.done.seconds((params.provingMs / 1000).toFixed(1))],
-    [ko.done.at, `${dateDots(params.at)} ${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`],
+    [t('done.to'), who],
+    [t('done.what'), what],
+    [t('done.card'), cardName(params.card)],
+    [t('done.took'), t('done.seconds', {seconds: (params.provingMs / 1000).toFixed(1)})],
+    [t('done.at'), `${dateDots(params.at)} ${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`],
   ];
 
   return (
@@ -162,10 +174,10 @@ export function DoneScreen() {
         <Icon name="check" size={48} color={colors.white} />
       </View>
       <Txt weight="bold" size={26} style={styles.center}>
-        {ko.done.title}
+        {t('done.title')}
       </Txt>
       <Txt size={15} color={colors.muted} style={styles.center}>
-        {ko.done.body(who, what)}
+        {t('done.body', {who, what})}
       </Txt>
       <View style={styles.table}>
         {rows.map(([k, v]) => (
@@ -180,8 +192,8 @@ export function DoneScreen() {
       <Verification verifyMs={params.verifyMs} inApp={inApp !== null && inApp.requestId === request.requestId ? inApp : null} />
       </ScrollView>
       <View style={styles.footer}>
-        <PrimaryButton label={request.returnScheme !== undefined ? ko.done.back : ko.done.home} onPress={back} />
-        <TextButton label={ko.done.history} color={colors.blue} onPress={() => finish('History')} />
+        <PrimaryButton label={request.returnScheme !== undefined ? t('done.back') : t('done.home')} onPress={back} />
+        <TextButton label={t('done.history')} color={colors.blue} onPress={() => finish('History')} />
       </View>
     </SafeAreaView>
   );

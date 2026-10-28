@@ -16,6 +16,7 @@
 		D3AAB761AE6243F9B9AF6237 /* Pretendard-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = C860F6A0465F469991B06C26 /* Pretendard-SemiBold.otf */; };
 		EB261032611847ED92878E83 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = CF320DAB7A644BBFBFB6E9D9 /* OFL.txt */; };
 		EFE6841C5A0842F7A70B3BB3 /* Pretendard-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 3CB30EF071D349ED9FBB6DD8 /* Pretendard-Bold.otf */; };
+		4B1A0C2E9D3F4A5B8C7D6E01 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4B1A0C2E9D3F4A5B8C7D6E02 /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,8 @@
 		CF320DAB7A644BBFBFB6E9D9 /* OFL.txt */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = OFL.txt; path = ../assets/fonts/OFL.txt; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		FF0F235A4A9B42E2AFAEEC89 /* Pretendard-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Pretendard-Regular.otf"; path = "../assets/fonts/Pretendard-Regular.otf"; sourceTree = "<group>"; };
+		4B1A0C2E9D3F4A5B8C7D6E03 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = KProof/en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		4B1A0C2E9D3F4A5B8C7D6E04 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = KProof/ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +56,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
+				4B1A0C2E9D3F4A5B8C7D6E02 /* InfoPlist.strings */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 			);
@@ -162,6 +166,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				ko,
 				Base,
 			);
 			mainGroup = 83CBB9F61A601CBA00E9B192;
@@ -186,10 +191,23 @@
 				D3AAB761AE6243F9B9AF6237 /* Pretendard-SemiBold.otf in Resources */,
 				EB261032611847ED92878E83 /* OFL.txt in Resources */,
 				5119B23DF3A18F7388AB8AE4 /* PrivacyInfo.xcprivacy in Resources */,
+				4B1A0C2E9D3F4A5B8C7D6E01 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		4B1A0C2E9D3F4A5B8C7D6E02 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B1A0C2E9D3F4A5B8C7D6E03 /* en */,
+				4B1A0C2E9D3F4A5B8C7D6E04 /* ko */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {

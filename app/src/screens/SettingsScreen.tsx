@@ -3,7 +3,7 @@ import {Modal, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
 import {BUILD_ENV, currentEnv} from '../config/buildEnv';
 import {kv} from '../app/deps';
 import {toAppError} from '../errors';
@@ -14,13 +14,15 @@ import {session, useSession} from '../state/session';
 import type {RootStackParamList} from '../navigation/types';
 import {PrimaryButton, TextButton, Txt} from '../ui/components';
 import {biometryLabel} from '../ui/describe';
+import {useCurrentLanguage} from '../i18n';
+import {languageOption} from '../i18n/languages';
 import {colors} from '../ui/theme';
 
 const pkg = require('../../package.json') as {version: string};
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-function Row(props: {title: string; sub?: string; right?: string; badge?: string; onPress?: () => void; danger?: boolean; last?: boolean}) {
+function Row(props: {title: string; sub?: string; right?: string; badge?: string; onPress?: () => void; danger?: boolean; last?: boolean; testID?: string}) {
   const body = (
     <View style={[styles.row, !props.last && styles.rowLine]}>
       <View style={styles.flex}>
@@ -48,7 +50,7 @@ function Row(props: {title: string; sub?: string; right?: string; badge?: string
     </View>
   );
   return props.onPress ? (
-    <Pressable accessibilityRole="button" onPress={props.onPress}>
+    <Pressable accessibilityRole="button" onPress={props.onPress} testID={props.testID}>
       {body}
     </Pressable>
   ) : (
@@ -57,11 +59,13 @@ function Row(props: {title: string; sub?: string; right?: string; badge?: string
 }
 
 export function SettingsScreen() {
+  const {t} = useTranslation();
+  const language = useCurrentLanguage();
   const nav = useNavigation<Nav>();
   const security = useSession((s) => s.security);
   const [confirm, setConfirm] = useState(false);
   const kind =
-    security?.kind === 'passcode' ? ko.settings.passcode : biometryLabel(security?.kind === 'biometry' ? security.biometry : '');
+    security?.kind === 'passcode' ? t('settings.passcode') : biometryLabel(security?.kind === 'biometry' ? security.biometry : '');
 
   const wipe = async () => {
     setConfirm(false);
@@ -79,37 +83,44 @@ export function SettingsScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Txt weight="bold" size={24}>
-          {ko.settings.title}
+          {t('settings.title')}
         </Txt>
 
         <Txt weight="bold" size={13} color={colors.muted}>
-          {ko.settings.security}
+          {t('settings.security')}
         </Txt>
         <View style={styles.panel}>
-          <Row title={ko.settings.lockOnOpen(kind)} sub={ko.settings.always} badge={ko.settings.required} />
-          <Row title={ko.settings.relockAfter} right={ko.settings.oneMinute} />
-          <Row title={ko.settings.reauthEachProof} sub={ko.settings.alwaysOn} badge={ko.settings.required} last />
+          <Row title={t('settings.lockOnOpen', {kind})} sub={t('settings.always')} badge={t('settings.required')} />
+          <Row title={t('settings.relockAfter')} right={t('settings.oneMinute')} />
+          <Row title={t('settings.reauthEachProof')} sub={t('settings.alwaysOn')} badge={t('settings.required')} last />
         </View>
 
         <Txt weight="bold" size={13} color={colors.muted}>
-          {ko.settings.cards}
+          {t('settings.cards')}
         </Txt>
         <View style={styles.panel}>
-          <Row title={ko.settings.reimport} right="›" onPress={() => nav.navigate('AddId')} />
-          <Row title={ko.settings.deleteAll} danger onPress={() => setConfirm(true)} last />
+          <Row title={t('settings.reimport')} right="›" onPress={() => nav.navigate('AddId')} />
+          <Row title={t('settings.deleteAll')} danger onPress={() => setConfirm(true)} last />
         </View>
 
         <Txt weight="bold" size={13} color={colors.muted}>
-          {ko.settings.info}
+          {t('settings.general')}
         </Txt>
         <View style={styles.panel}>
-          <Row title={ko.settings.environment} right={BUILD_ENV} />
-          <Row title={ko.settings.circuits} right={`${currentEnv().circuits.repo}@${currentEnv().circuits.commit.slice(0, 7)}`} />
-          <Row title={ko.settings.version} right={pkg.version} last />
+          <Row title={t('settings.language')} right={`${languageOption(language).label}  ›`} onPress={() => nav.navigate('SettingsLanguage')} testID="settings-language" last />
+        </View>
+
+        <Txt weight="bold" size={13} color={colors.muted}>
+          {t('settings.info')}
+        </Txt>
+        <View style={styles.panel}>
+          <Row title={t('settings.environment')} right={BUILD_ENV} />
+          <Row title={t('settings.circuits')} right={`${currentEnv().circuits.repo}@${currentEnv().circuits.commit.slice(0, 7)}`} />
+          <Row title={t('settings.version')} right={pkg.version} last />
         </View>
 
         <Txt size={12} color={colors.muted} style={styles.footer}>
-          {ko.settings.footer}
+          {t('settings.footer')}
         </Txt>
       </ScrollView>
 
@@ -117,13 +128,13 @@ export function SettingsScreen() {
         <View style={styles.scrim}>
           <View style={styles.sheet}>
             <Txt weight="bold" size={20}>
-              {ko.settings.deleteConfirmTitle}
+              {t('settings.deleteConfirmTitle')}
             </Txt>
             <Txt size={15} color={colors.muted}>
-              {ko.settings.deleteConfirmBody}
+              {t('settings.deleteConfirmBody')}
             </Txt>
-            <PrimaryButton label={ko.settings.deleteConfirm} color={colors.red} onPress={wipe} />
-            <TextButton label={ko.settings.deleteCancel} onPress={() => setConfirm(false)} />
+            <PrimaryButton label={t('settings.deleteConfirm')} color={colors.red} onPress={wipe} />
+            <TextButton label={t('settings.deleteCancel')} onPress={() => setConfirm(false)} />
           </View>
         </View>
       </Modal>

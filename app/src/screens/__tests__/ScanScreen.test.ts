@@ -52,7 +52,7 @@ jest.mock('../../app/deepLinks', () => ({handleIncomingUrl: (url: string) => moc
 import {getEnv} from '../../config/env';
 import {encodeBase64Url, utf8Encode} from '../../domain/bytes';
 import {parseProofRequestUrl} from '../../domain/request';
-import {ko} from '../../i18n/ko';
+import i18n from '../../i18n';
 import {session} from '../../state/session';
 import {ScanScreen} from '../ScanScreen';
 
@@ -168,7 +168,7 @@ describe('codes that are not KProof requests', () => {
   ])('%#: refused on the scanner, nothing opened, scanning continues', async (value) => {
     await render();
     act(() => scanner().onCodeScanned([{value}]));
-    expect(texts()).toContain(ko.errors.E1008.title);
+    expect(texts()).toContain(i18n.t('errors.E1008.title'));
     expect(mockHandle).not.toHaveBeenCalled();
     expect(mockOpenURL).not.toHaveBeenCalled();
     expect(mockGoBack).not.toHaveBeenCalled();
@@ -182,7 +182,7 @@ describe('camera permission', () => {
   test('denied: explains and offers Settings', async () => {
     mockStatus = 'denied';
     await render();
-    expect(texts()).toContain(ko.scan.deniedTitle);
+    expect(texts()).toContain(i18n.t('scan.deniedTitle'));
     expect(tree.root.findAll((n) => (n.type as unknown) === 'Camera')).toHaveLength(0);
     act(() => tree.root.findByProps({testID: 'scan-open-settings'}).props.onPress());
     expect(mockOpenSettings).toHaveBeenCalledTimes(1);
@@ -191,7 +191,7 @@ describe('camera permission', () => {
   test('restricted: explains, and offers no Settings button it cannot honour', async () => {
     mockStatus = 'restricted';
     await render();
-    expect(texts()).toContain(ko.scan.restrictedTitle);
+    expect(texts()).toContain(i18n.t('scan.restrictedTitle'));
     expect(tree.root.findAllByProps({testID: 'scan-open-settings'})).toHaveLength(0);
   });
 
@@ -207,13 +207,13 @@ describe('camera permission', () => {
     mockStatus = 'not-determined';
     mockRequestPermission.mockResolvedValue('denied');
     await render();
-    expect(texts()).toContain(ko.scan.deniedTitle);
+    expect(texts()).toContain(i18n.t('scan.deniedTitle'));
   });
 
   test('no camera on the device', async () => {
     mockDevice = undefined;
     await render();
-    expect(texts()).toContain(ko.scan.noCameraTitle);
+    expect(texts()).toContain(i18n.t('scan.noCameraTitle'));
   });
 
   test('a locked app keeps the camera off', async () => {

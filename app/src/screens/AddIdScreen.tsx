@@ -2,7 +2,7 @@ import React, {useRef, useState} from 'react';
 import {ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
 import {CARD_ORDER, REQUEST_PROVIDER, type CardTypeKey} from '../config/cardTypes';
 import {idImportDeps} from '../app/deps';
 import {toAppError} from '../errors';
@@ -19,6 +19,7 @@ export const IMPORT_TIMEOUT_MS = 180_000;
 export const IMPORT_POLL_MS = 3_000;
 
 export function AddIdScreen() {
+  const {t} = useTranslation();
   const nav = useNavigation();
   const vault = useSession((s) => s.vault);
   const [running, setRunning] = useState(false);
@@ -48,7 +49,7 @@ export function AddIdScreen() {
       nav.goBack();
     } catch (err) {
       if (err instanceof CardMismatchError) {
-        session.showError('E6007', ko.addId.mismatch(cardName(err.chose), cardName(err.received), err.detail));
+        session.showError('E6007', t('addId.mismatch', {chose: cardName(err.chose), received: cardName(err.received), detail: err.detail}));
       } else {
         const e = toAppError(err, 'E6001');
         session.showError(e.code, e.detail);
@@ -64,22 +65,22 @@ export function AddIdScreen() {
   return (
     <SafeAreaView style={styles.root} testID="addid-screen">
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Pressable accessibilityRole="button" accessibilityLabel={ko.addId.back} style={styles.back} onPress={() => nav.goBack()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('addId.back')} style={styles.back} onPress={() => nav.goBack()}>
           <Icon name="back" />
         </Pressable>
         <Txt weight="bold" size={26} style={styles.title}>
-          {ko.addId.title}
+          {t('addId.title')}
         </Txt>
         <Txt size={15} color={colors.muted}>
-          {ko.addId.intro}
+          {t('addId.intro')}
         </Txt>
         <Txt weight="bold" size={13} color={colors.muted}>
-          {ko.addId.pick}
+          {t('addId.pick')}
         </Txt>
         {CARD_ORDER.map((key) => {
           const selected = choice === key;
           const has = vault?.cards.some((c) => c.type === key) === true;
-          const note = has ? ko.addId.already : ko.addId.sourceApp;
+          const note = has ? t('addId.already') : t('addId.sourceApp');
           return (
             <Pressable
               key={key}
@@ -103,10 +104,10 @@ export function AddIdScreen() {
           );
         })}
         <Txt size={13} color={colors.ink}>
-          {ko.addId.representative}
+          {t('addId.representative')}
         </Txt>
         <View style={styles.steps}>
-          {ko.addId.steps.map((s, i) => (
+          {t('addId.steps', {returnObjects: true}).map((s, i) => (
             <Txt key={s} size={14} color={colors.muted}>
               {`${i + 1}. ${s}`}
             </Txt>
@@ -114,7 +115,7 @@ export function AddIdScreen() {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <PrimaryButton label={choice === null ? ko.addId.pickFirst : ko.addId.open} onPress={start} disabled={choice === null || running} />
+        <PrimaryButton label={choice === null ? t('addId.pickFirst') : t('addId.open')} onPress={start} disabled={choice === null || running} />
       </View>
 
       <Modal transparent visible={running} animationType="fade" onRequestClose={cancel}>
@@ -122,12 +123,12 @@ export function AddIdScreen() {
           <View style={styles.sheet} testID="addid-waiting">
             <ActivityIndicator size="large" color={colors.blue} />
             <Txt weight="bold" size={18} style={styles.center}>
-              {ko.addId.waiting}
+              {t('addId.waiting')}
             </Txt>
             <Txt size={14} color={colors.muted} style={styles.center}>
-              {ko.addId.waitingNote}
+              {t('addId.waitingNote')}
             </Txt>
-            <TextButton label={ko.addId.cancel} onPress={cancel} />
+            <TextButton label={t('addId.cancel')} onPress={cancel} />
           </View>
         </View>
       </Modal>

@@ -19,6 +19,10 @@ const PAIRS: Readonly<Record<Particle, readonly [withFinal: string, withoutFinal
   로: ['으로', '로'],
 };
 
+export function isParticle(value: unknown): value is Particle {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(PAIRS, value);
+}
+
 const RIEUL = 8;
 
 // How a trailing digit or Latin letter is read aloud, as the final consonant

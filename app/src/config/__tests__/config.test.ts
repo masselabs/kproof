@@ -1,7 +1,7 @@
 import {ENV, getEnv} from '../env';
 import {CIRCUIT_IDS, isCircuitId} from '../circuits';
 import {SYMBOL_COLOR, WORDMARK_COLOR} from '../../ui/brandMarks';
-import {ko} from '../../i18n/ko';
+import ko from '../../i18n/locales/ko.json';
 import {ERROR_CODES} from '../../errors';
 
 // Node built-ins, typed locally so node's types do not leak into app code.

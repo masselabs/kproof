@@ -9,7 +9,7 @@ import {
   type CameraPermissionStatus,
   type CameraRuntimeError,
 } from 'react-native-vision-camera';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
 import {currentEnv} from '../config/buildEnv';
 import {handleIncomingUrl} from '../app/deepLinks';
 import {createScanGate, REFUSAL_QUIET_MS, type ScanGate} from '../app/scanGate';
@@ -36,6 +36,7 @@ export function blockerOf(permission: CameraPermissionStatus, failed: boolean, h
 
 /** Full-screen QR scanner, opened from the centre tab-bar button. */
 export function ScanScreen() {
+  const {t} = useTranslation();
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
@@ -147,7 +148,7 @@ export function ScanScreen() {
       <View style={styles.overlay} pointerEvents="box-none">
         <View style={[styles.dim, styles.top]}>
           <Txt weight="bold" size={20} color={colors.white}>
-            {ko.scan.title}
+            {t('scan.title')}
           </Txt>
         </View>
         <View style={styles.middle}>
@@ -162,18 +163,18 @@ export function ScanScreen() {
         </View>
         <View style={[styles.dim, styles.bottom]}>
           <Txt size={15} color={colors.white} style={styles.center}>
-            {ko.scan.hint}
+            {t('scan.hint')}
           </Txt>
           {refusal ? (
             <View style={styles.refusal} testID="scan-refusal">
               <Txt weight="semibold" size={13} color={colors.red}>
-                {ko.errorModal.code(refusal.code)}
+                {t('errorModal.code', {code: refusal.code})}
               </Txt>
               <Txt weight="bold" size={16}>
-                {ko.errors[refusal.code].title}
+                {t(`errors.${refusal.code}.title`)}
               </Txt>
               <Txt size={14} color={colors.muted}>
-                {ko.errors[refusal.code].body}
+                {t(`errors.${refusal.code}.body`)}
               </Txt>
             </View>
           ) : null}
@@ -183,7 +184,7 @@ export function ScanScreen() {
       <Pressable
         testID="scan-close"
         accessibilityRole="button"
-        accessibilityLabel={ko.scan.close}
+        accessibilityLabel={t('scan.close')}
         onPress={close}
         hitSlop={12}
         style={[styles.closeButton, {top: insets.top + 8}]}>
@@ -194,19 +195,19 @@ export function ScanScreen() {
         <View style={styles.sheetScrim}>
           <View style={[styles.sheet, {paddingBottom: 24 + insets.bottom}]} testID={`scan-blocker-${blocker}`}>
             <Txt weight="bold" size={20}>
-              {ko.scan[`${blocker}Title`]}
+              {t(`scan.${blocker}Title`)}
             </Txt>
             <Txt size={15} color={colors.muted}>
-              {ko.scan[`${blocker}Body`]}
+              {t(`scan.${blocker}Body`)}
             </Txt>
             <View style={styles.gap} />
             {blocker === 'denied' ? (
-              <PrimaryButton testID="scan-open-settings" label={ko.scan.openSettings} onPress={() => void Linking.openSettings()} />
+              <PrimaryButton testID="scan-open-settings" label={t('scan.openSettings')} onPress={() => void Linking.openSettings()} />
             ) : null}
             {blocker === 'failed' ? (
-              <PrimaryButton testID="scan-retry" label={ko.scan.retry} onPress={() => setFailed(false)} />
+              <PrimaryButton testID="scan-retry" label={t('scan.retry')} onPress={() => setFailed(false)} />
             ) : null}
-            <TextButton testID="scan-blocker-close" label={ko.scan.close} onPress={close} />
+            <TextButton testID="scan-blocker-close" label={t('scan.close')} onPress={close} />
           </View>
         </View>
       ) : null}

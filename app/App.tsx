@@ -1,3 +1,4 @@
+import './src/i18n';
 import React, {useEffect} from 'react';
 import {AppState, Linking, Pressable, StatusBar, StyleSheet, View} from 'react-native';
 import type {BottomTabBarButtonProps} from '@react-navigation/bottom-tabs';
@@ -5,7 +6,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {NavigationContainer, createNavigationContainerRef, DefaultTheme} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {ko} from './src/i18n/ko';
+import {useTranslation} from 'react-i18next';
 import {handleIncomingUrl} from './src/app/deepLinks';
 import {session, useSession} from './src/state/session';
 import type {RootStackParamList, TabParamList} from './src/navigation/types';
@@ -22,6 +23,7 @@ import {RequestScreen} from './src/screens/RequestScreen';
 import {ProvingScreen} from './src/screens/ProvingScreen';
 import {DoneScreen} from './src/screens/DoneScreen';
 import {ScanScreen} from './src/screens/ScanScreen';
+import {SettingsLanguageScreen} from './src/screens/SettingsLanguageScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -38,11 +40,12 @@ function NoScreen() {
 
 /** The raised round button in the middle of the tab bar. */
 function ScanTabButton({onPress}: BottomTabBarButtonProps) {
+  const {t} = useTranslation();
   return (
     <Pressable
       testID="tab-scan"
       accessibilityRole="button"
-      accessibilityLabel={ko.scan.title}
+      accessibilityLabel={t('scan.title')}
       onPress={onPress}
       style={styles.scanTab}>
       {({pressed}) => (
@@ -51,7 +54,7 @@ function ScanTabButton({onPress}: BottomTabBarButtonProps) {
             <Icon name="scan" size={28} color={colors.white} />
           </View>
           <Txt weight="semibold" size={12} color={colors.blue}>
-            {ko.tabs.scan}
+            {t('tabs.scan')}
           </Txt>
         </>
       )}
@@ -60,6 +63,7 @@ function ScanTabButton({onPress}: BottomTabBarButtonProps) {
 }
 
 function Tabs() {
+  const {t} = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
@@ -70,12 +74,12 @@ function Tabs() {
         tabBarStyle: {backgroundColor: colors.card, borderTopColor: colors.line},
         tabBarIcon: ({color}) => <Icon name={TAB_ICONS[route.name]} color={color} />,
       })}>
-      <Tab.Screen name="Home" component={HomeScreen} options={{title: ko.tabs.home}} />
-      <Tab.Screen name="Proofs" component={ProofsScreen} options={{title: ko.tabs.proofs}} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{title: t('tabs.home')}} />
+      <Tab.Screen name="Proofs" component={ProofsScreen} options={{title: t('tabs.proofs')}} />
       <Tab.Screen
         name="ScanTab"
         component={NoScreen}
-        options={{title: ko.tabs.scan, tabBarButton: (props) => <ScanTabButton {...props} />}}
+        options={{title: t('tabs.scan'), tabBarButton: (props) => <ScanTabButton {...props} />}}
         listeners={({navigation}) => ({
           tabPress: (e) => {
             e.preventDefault();
@@ -83,8 +87,8 @@ function Tabs() {
           },
         })}
       />
-      <Tab.Screen name="History" component={HistoryScreen} options={{title: ko.tabs.history}} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{title: ko.tabs.settings}} />
+      <Tab.Screen name="History" component={HistoryScreen} options={{title: t('tabs.history')}} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{title: t('tabs.settings')}} />
     </Tab.Navigator>
   );
 }
@@ -141,6 +145,7 @@ export default function App() {
           <Stack.Navigator screenOptions={{headerShown: false, contentStyle: {backgroundColor: colors.paper}}}>
             <Stack.Screen name="Tabs" component={Tabs} />
             <Stack.Screen name="AddId" component={AddIdScreen} />
+            <Stack.Screen name="SettingsLanguage" component={SettingsLanguageScreen} />
             <Stack.Screen name="Scan" component={ScanScreen} options={{animation: 'slide_from_bottom', gestureEnabled: false}} />
             <Stack.Screen name="Request" component={RequestScreen} options={{gestureEnabled: false}} />
             <Stack.Screen name="Proving" component={ProvingScreen} options={{gestureEnabled: false}} />

@@ -81,7 +81,7 @@ describe('feasibility before proving', () => {
     expect(canProve(card, region('경기도'), 2026).ok).toBe(false);
     expect(canProve({...card, address: '전라북도 전주시'}, region('전북특별자치도'), 2026).ok).toBe(false);
     const noAddress = {...card, address: undefined};
-    expect(canProve(noAddress, region('경기도'), 2026)).toEqual({ok: false, reason: expect.stringContaining('주소가 없어')});
+    expect(canProve(noAddress, region('경기도'), 2026)).toEqual({ok: false, why: 'noAddress', reason: 'card has no address'});
     expect(firstAddressToken('  \t경기도\t성남시')).toBe('경기도');
     expect(firstAddressToken('')).toBe('');
   });

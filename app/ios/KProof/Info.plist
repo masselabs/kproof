@@ -3,7 +3,16 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>ko</string>
+	<string>en</string>
+	<!-- The languages this app has translations for (src/i18n/locales). iOS
+	     hands the app a locale from the intersection of the phone's languages
+	     and this list; without ko here a Korean phone would be given English.
+	     Permission texts per language are in <lang>.lproj/InfoPlist.strings. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ko</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>KProof</string>
 	<key>CFBundleExecutable</key>
@@ -49,9 +58,9 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>서비스가 보여 주는 증명 요청 QR 코드를 스캔할 때 카메라를 씁니다.</string>
+	<string>KProof uses the camera to scan the proof request QR code a service shows you.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>저장한 신분증을 열고 증명을 만들기 전에 본인을 확인합니다.</string>
+	<string>KProof confirms it's you before opening your saved ID and before creating a proof.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

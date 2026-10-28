@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
 import {CIRCUIT_IDS, type CircuitId} from '../config/circuits';
 import {RelayError} from '@kproof/sdk';
 import {kv} from '../app/deps';
@@ -13,7 +13,7 @@ import {createInAppRequest, type InAppAsk} from '../services/inAppProof';
 import {initialCard, nextCard, readPrefs, writePrefs, type CardPrefs} from '../state/prefs';
 import {session, useSession} from '../state/session';
 import {OutlineButton, Panel, Txt} from '../ui/components';
-import {cardColor, cardPlain} from '../ui/describe';
+import {cardColor, cardPlain, regionName} from '../ui/describe';
 import {colors} from '../ui/theme';
 
 /** Thresholds offered for an in-app age proof. */
@@ -29,6 +29,7 @@ function relayErrorCode(err: unknown): AppError {
 }
 
 export function ProofsScreen() {
+  const {t} = useTranslation();
   const vault = useSession((s) => s.vault);
   const imported = (vault?.cards ?? []).map((c) => c.type);
   const [prefs, setPrefs] = useState<CardPrefs>({});
@@ -77,16 +78,16 @@ export function ProofsScreen() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Txt weight="bold" size={26}>
-          {ko.proofs.title}
+          {t('proofs.title')}
         </Txt>
         <Txt size={14} color={colors.muted}>
-          {ko.proofs.intro}
+          {t('proofs.intro')}
         </Txt>
         <Panel style={styles.howTo}>
-          <Txt size={14}>{ko.proofs.howTo}</Txt>
+          <Txt size={14}>{t('proofs.howTo')}</Txt>
         </Panel>
         <Txt weight="bold" size={14} color={colors.muted} style={styles.label}>
-          {ko.proofs.canProve}
+          {t('proofs.canProve')}
         </Txt>
         {CIRCUIT_IDS.map((circuit) => {
           const card = initialCard(prefs, circuit, imported);
@@ -94,17 +95,17 @@ export function ProofsScreen() {
             <Panel key={circuit} style={styles.row}>
               <View style={styles.rowHead}>
                 <Txt weight="bold" size={16}>
-                  {ko.facts[circuit]}
+                  {t(`facts.${circuit}`)}
                 </Txt>
                 <Pressable accessibilityRole="button" style={styles.picker} onPress={() => cycle(circuit)} disabled={card === null}>
                   <View style={[styles.swatch, {backgroundColor: card === null ? colors.faint : cardColor(card)}]} />
                   <Txt weight="semibold" size={13}>
-                    {card === null ? ko.proofs.noCard : `${cardPlain(card)} ▾`}
+                    {card === null ? t('proofs.noCard') : `${cardPlain(card)} ▾`}
                   </Txt>
                 </Pressable>
               </View>
               <Txt size={14} color={colors.muted}>
-                {ko.factDesc[circuit]}
+                {t(`factDesc.${circuit}`)}
               </Txt>
               {circuit === 'mdl_kr_age' ? (
                 <View style={styles.options}>
@@ -116,7 +117,7 @@ export function ProofsScreen() {
                       onPress={() => setAge(n)}
                       style={[styles.option, age === n && styles.optionOn]}>
                       <Txt weight="semibold" size={13} color={age === n ? colors.white : colors.ink}>
-                        {ko.proofs.ageOption(n)}
+                        {t('proofs.ageOption', {age: n})}
                       </Txt>
                     </Pressable>
                   ))}
@@ -132,7 +133,7 @@ export function ProofsScreen() {
                       onPress={() => setRegion(r)}
                       style={[styles.option, targetRegion === r && styles.optionOn]}>
                       <Txt weight="semibold" size={13} color={targetRegion === r ? colors.white : colors.ink}>
-                        {r}
+                        {regionName(r)}
                       </Txt>
                     </Pressable>
                   ))}
@@ -140,7 +141,7 @@ export function ProofsScreen() {
               ) : null}
               {card === null ? null : (
                 <OutlineButton
-                  label={starting === circuit ? ko.proofs.starting : ko.proofs.tryInApp}
+                  label={starting === circuit ? t('proofs.starting') : t('proofs.tryInApp')}
                   onPress={() => {
                     if (starting !== null) return;
                     if (circuit === 'mdl_kr_ownership') void startInApp({circuitId: circuit});
@@ -154,10 +155,10 @@ export function ProofsScreen() {
           );
         })}
         <Txt size={12} color={colors.muted}>
-          {ko.proofs.pickNote}
+          {t('proofs.pickNote')}
         </Txt>
         <Txt size={12} color={colors.muted}>
-          {ko.proofs.inAppNote}
+          {t('proofs.inAppNote')}
         </Txt>
       </ScrollView>
     </SafeAreaView>

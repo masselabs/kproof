@@ -2,14 +2,15 @@ import React, {useCallback, useState} from 'react';
 import {FlatList, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
 import {kv} from '../app/deps';
 import {readHistory, type HistoryRecord} from '../services/history';
 import {Txt} from '../ui/components';
-import {cardColor, cardPlain, shortStamp, shortWhat} from '../ui/describe';
+import {cardColor, cardPlain, serviceName, shortStamp, shortWhat} from '../ui/describe';
 import {colors} from '../ui/theme';
 
 export function HistoryScreen() {
+  const {t} = useTranslation();
   const [rows, setRows] = useState<HistoryRecord[]>([]);
 
   useFocusEffect(
@@ -27,16 +28,16 @@ export function HistoryScreen() {
         ListHeaderComponent={
           <View style={styles.head}>
             <Txt weight="bold" size={26}>
-              {ko.history.title}
+              {t('history.title')}
             </Txt>
             <Txt size={14} color={colors.muted}>
-              {ko.history.intro}
+              {t('history.intro')}
             </Txt>
           </View>
         }
         ListEmptyComponent={
           <Txt size={15} color={colors.muted}>
-            {ko.history.empty}
+            {t('history.empty')}
           </Txt>
         }
         renderItem={({item}) => {
@@ -49,12 +50,12 @@ export function HistoryScreen() {
                   {shortWhat(item.inputs)}
                 </Txt>
                 <Txt size={13} color={colors.muted} numberOfLines={1}>
-                  {`${item.dappName ?? ko.request.unnamed}${item.card ? ` · ${cardPlain(item.card)}` : ''}`}
+                  {`${serviceName(item.dappName)}${item.card ? ` · ${cardPlain(item.card)}` : ''}`}
                 </Txt>
               </View>
               <View style={styles.right}>
                 <Txt weight="bold" size={13} color={ok ? colors.blue : colors.red}>
-                  {ko.history.result[item.result]}
+                  {t(`history.result.${item.result}`)}
                   {item.errorCode ? ` ${item.errorCode}` : ''}
                 </Txt>
                 <Txt size={12} color={colors.muted}>

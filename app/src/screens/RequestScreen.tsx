@@ -3,7 +3,7 @@ import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
 import type {CardTypeKey} from '../config/cardTypes';
 import {answerFlowDeps, kv} from '../app/deps';
 import {canProve} from '../domain/predicates';
@@ -13,7 +13,7 @@ import {initialCard, nextCard, readPrefs} from '../state/prefs';
 import {session, useSession} from '../state/session';
 import type {RootStackParamList} from '../navigation/types';
 import {Chip, Icon, Panel, PrimaryButton, Symbol, TextButton, Txt} from '../ui/components';
-import {biometryLabel, cardColor, cardName, factText, questionText} from '../ui/describe';
+import {biometryLabel, cannotText, cardColor, cardName, factText, questionText, serviceName} from '../ui/describe';
 import {colors} from '../ui/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -22,6 +22,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export const RELAY_DEADLINE_MS = 280_000;
 
 export function RequestScreen() {
+  const {t} = useTranslation();
   const nav = useNavigation<Nav>();
   const request = useSession((s) => s.pendingRequest);
   const vault = useSession((s) => s.vault);
@@ -75,18 +76,18 @@ export function RequestScreen() {
 
   const approveLabel =
     security?.kind === 'passcode'
-      ? ko.request.approvePasscode
-      : ko.request.approve(biometryLabel(security?.kind === 'biometry' ? security.biometry : ''));
+      ? t('request.approvePasscode')
+      : t('request.approve', {kind: biometryLabel(security?.kind === 'biometry' ? security.biometry : '')});
 
   return (
     <SafeAreaView style={styles.root} testID="request-screen">
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.topRow}>
           <Txt weight="bold" size={13} color={colors.red}>
-            {ko.request.badge}
+            {t('request.badge')}
           </Txt>
           <Txt size={13} color={colors.muted}>
-            {remaining > 0 ? ko.request.remaining(Math.floor(remaining / 60), remaining % 60) : ko.request.expiredBadge}
+            {remaining > 0 ? t('request.remaining', {minutes: Math.floor(remaining / 60), seconds: String(remaining % 60).padStart(2, '0')}) : t('request.expiredBadge')}
           </Txt>
         </View>
 
@@ -95,7 +96,7 @@ export function RequestScreen() {
             <Symbol size={24} />
           </View>
           <Txt weight="bold" size={17}>
-            {request.dappName ?? ko.request.unnamed}
+            {serviceName(request.dappName)}
           </Txt>
         </View>
 
@@ -104,17 +105,17 @@ export function RequestScreen() {
         </Txt>
         {request.inputs.circuitId === 'mdl_kr_age' ? (
           <Txt size={13} color={colors.muted}>
-            {ko.request.ageBasis}
+            {t('request.ageBasis')}
           </Txt>
         ) : null}
 
         {card === null ? (
           <Panel style={styles.box}>
             <Txt weight="bold" size={16}>
-              {ko.request.noCardTitle}
+              {t('request.noCardTitle')}
             </Txt>
             <Txt size={14} color={colors.muted}>
-              {ko.request.noCardBody}
+              {t('request.noCardBody')}
             </Txt>
           </Panel>
         ) : (
@@ -125,12 +126,12 @@ export function RequestScreen() {
             <View style={styles.cardPickLeft}>
               <View style={[styles.cardSwatch, {backgroundColor: cardColor(card)}]} />
               <Txt weight="semibold" size={15}>
-                {ko.request.useCard(cardName(card))}
+                {t('request.useCard', {card: cardName(card)})}
               </Txt>
             </View>
             {imported.length > 1 ? (
               <Txt weight="semibold" size={14} color={colors.blue}>
-                {ko.request.change}
+                {t('request.change')}
               </Txt>
             ) : null}
           </Pressable>
@@ -139,15 +140,15 @@ export function RequestScreen() {
         {feasibility !== null && !feasibility.ok ? (
           <Panel style={[styles.box, styles.warn]}>
             <Txt weight="bold" size={15} color={colors.red}>
-              {ko.request.cannotTitle}
+              {t('request.cannotTitle')}
             </Txt>
-            <Txt size={14}>{feasibility.reason}</Txt>
+            <Txt size={14}>{cannotText(feasibility.why, request.inputs)}</Txt>
           </Panel>
         ) : null}
 
         <Panel style={styles.box}>
           <Txt weight="bold" size={14} color={colors.blue}>
-            {ko.request.sends}
+            {t('request.sends')}
           </Txt>
           <View style={styles.line}>
             <Icon name="check" size={20} color={colors.blue} />
@@ -158,9 +159,9 @@ export function RequestScreen() {
           <View style={styles.line}>
             <Icon name="check" size={20} color={colors.blue} />
             <View style={styles.flex}>
-              <Txt size={15}>{ko.request.sendsNullifier}</Txt>
+              <Txt size={15}>{t('request.sendsNullifier')}</Txt>
               <Txt size={13} color={colors.muted}>
-                {ko.request.sendsNullifierNote}
+                {t('request.sendsNullifierNote')}
               </Txt>
             </View>
           </View>
@@ -168,10 +169,10 @@ export function RequestScreen() {
 
         <Panel style={styles.box}>
           <Txt weight="bold" size={14} color={colors.muted}>
-            {ko.request.notSent}
+            {t('request.notSent')}
           </Txt>
           <View style={styles.chips}>
-            {ko.request.notSentItems.map((i) => (
+            {t('request.notSentItems', {returnObjects: true}).map((i) => (
               <Chip key={i} label={i} tone="grey" />
             ))}
           </View>
@@ -180,7 +181,7 @@ export function RequestScreen() {
         {request.message !== undefined ? (
           <Panel style={styles.box}>
             <Txt weight="bold" size={14} color={colors.muted}>
-              {ko.request.message}
+              {t('request.message')}
             </Txt>
             <Txt size={15}>{request.message}</Txt>
           </Panel>
@@ -189,7 +190,7 @@ export function RequestScreen() {
 
       <View style={styles.footer}>
         {card === null ? (
-          <PrimaryButton label={ko.request.goAdd} onPress={() => nav.navigate('AddId')} />
+          <PrimaryButton label={t('request.goAdd')} onPress={() => nav.navigate('AddId')} />
         ) : (
           <PrimaryButton
             testID="approve"
@@ -204,7 +205,7 @@ export function RequestScreen() {
             }}
           />
         )}
-        <TextButton testID="decline" label={ko.request.decline} onPress={() => onDecline('The person declined the request')} />
+        <TextButton testID="decline" label={t('request.decline')} onPress={() => onDecline('The person declined the request')} />
       </View>
     </SafeAreaView>
   );

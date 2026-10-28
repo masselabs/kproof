@@ -1,7 +1,8 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {ko} from '../i18n/ko';
+import {useTranslation} from 'react-i18next';
+import i18n from '../i18n';
 import {AppError, toAppError} from '../errors';
 import {keychain} from '../services/keychainAdapter';
 import {deviceSecurity, openVault, resetVault} from '../services/vault';
@@ -12,6 +13,7 @@ import {colors} from '../ui/theme';
 
 /** Shown over everything whenever the app is locked. Unlocking reads the vault. */
 export function LockScreen() {
+  const {t} = useTranslation();
   const security = useSession((s) => s.security);
   const [busy, setBusy] = useState(false);
   const [lastCode, setLastCode] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export function LockScreen() {
       const sec = await deviceSecurity(keychain);
       session.setSecurity(sec);
       if (sec.kind === 'none') throw new AppError('E4002', 'no biometrics and no device passcode');
-      const vault = await openVault(keychain, {title: ko.lock.prompt, cancel: ko.lock.cancel});
+      const vault = await openVault(keychain, {title: i18n.t('lock.prompt'), cancel: i18n.t('lock.cancel')});
       session.unlocked(vault);
     } catch (err) {
       const e = toAppError(err, 'E4001');
@@ -52,15 +54,15 @@ export function LockScreen() {
 
   const label =
     security?.kind === 'passcode'
-      ? ko.lock.unlockPasscode
-      : ko.lock.unlockBiometric(biometryLabel(security?.kind === 'biometry' ? security.biometry : ''));
+      ? t('lock.unlockPasscode')
+      : t('lock.unlockBiometric', {kind: biometryLabel(security?.kind === 'biometry' ? security.biometry : '')});
 
   return (
     <SafeAreaView style={styles.root} testID="lock-screen">
       <View style={styles.top}>
         <Wordmark width={168} />
         <Txt size={17} color={colors.muted} style={styles.center}>
-          {ko.lock.intro}
+          {t('lock.intro')}
         </Txt>
       </View>
       <View style={styles.middle}>
@@ -70,14 +72,14 @@ export function LockScreen() {
       </View>
       <View style={styles.bottom}>
         <PrimaryButton label={label} onPress={unlock} disabled={busy} testID="unlock" />
-        {lastCode === 'E4003' ? <TextButton label={ko.lock.wipe} onPress={wipe} color={colors.red} /> : null}
+        {lastCode === 'E4003' ? <TextButton label={t('lock.wipe')} onPress={wipe} color={colors.red} /> : null}
         {security?.kind === 'passcode' ? (
           <Txt size={13} color={colors.muted} style={styles.center}>
-            {ko.lock.passcodeNote}
+            {t('lock.passcodeNote')}
           </Txt>
         ) : null}
         <Txt size={13} color={colors.muted} style={styles.center}>
-          {ko.lock.rule}
+          {t('lock.rule')}
         </Txt>
       </View>
     </SafeAreaView>
