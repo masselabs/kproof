@@ -6,16 +6,23 @@
 import type { Check, InputField, InputProblem, RelayErrorKind } from '@kproof/sdk';
 import { InputError, MAX_AGE, MAX_TEXT_LENGTH, MIN_AGE, RelayError } from '@kproof/sdk';
 
-const FIELD: Record<InputField, string> = {
-  scope: '서비스 범위(scope)',
-  ageThreshold: '나이',
-  targetRegion: '지역',
+/** Each field's name with the particle it takes, written out: the names are fixed, so no particle is guessed. */
+interface FieldWords {
+  object: string;
+  topic: string;
+  at: string;
+}
+
+const FIELD: Record<InputField, FieldWords> = {
+  scope: { object: '서비스 범위(scope)를', topic: '서비스 범위(scope)는', at: '서비스 범위(scope)에' },
+  ageThreshold: { object: '나이를', topic: '나이는', at: '나이에' },
+  targetRegion: { object: '지역을', topic: '지역은', at: '지역에' },
 };
 
-const PROBLEM: Record<InputProblem, (label: string) => string> = {
-  empty: (l) => `${l}을(를) 입력하세요.`,
-  too_long: (l) => `${l}은(는) ${MAX_TEXT_LENGTH}자 이하여야 합니다.`,
-  control_characters: (l) => `${l}에 줄바꿈이나 제어 문자를 넣을 수 없습니다.`,
+const PROBLEM: Record<InputProblem, (f: FieldWords) => string> = {
+  empty: (f) => `${f.object} 입력하세요.`,
+  too_long: (f) => `${f.topic} ${MAX_TEXT_LENGTH}자 이하여야 합니다.`,
+  control_characters: (f) => `${f.at} 줄바꿈이나 제어 문자를 넣을 수 없습니다.`,
   not_an_integer: () => `나이는 ${MIN_AGE}~${MAX_AGE} 사이의 정수로 입력하세요.`,
   out_of_range: () => `나이는 ${MIN_AGE}~${MAX_AGE} 사이의 정수로 입력하세요.`,
   unknown_region: () => '지역은 목록에 있는 시·도 중 하나여야 합니다.',

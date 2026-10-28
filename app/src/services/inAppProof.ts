@@ -16,7 +16,7 @@ import type {SiDo} from '../domain/regions';
 
 /** The scope every in-app proof uses; the nullifier is the same for each of a person's in-app proofs. */
 export const IN_APP_SCOPE = 'kproof-app:in-app-proof';
-export const IN_APP_DAPP_NAME = 'KProof 앱에서 직접 증명';
+export const IN_APP_DAPP_NAME = 'KProof 앱';
 
 export type InAppAsk =
   | {circuitId: 'mdl_kr_ownership'}

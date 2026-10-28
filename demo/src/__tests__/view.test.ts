@@ -80,7 +80,10 @@ describe('words', () => {
   });
 
   it.each([
-    [new InputError('scope', 'empty', 'x'), '서비스 범위(scope)을(를) 입력하세요.'],
+    [new InputError('scope', 'empty', 'x'), '서비스 범위(scope)를 입력하세요.'],
+    [new InputError('targetRegion', 'empty', 'x'), '지역을 입력하세요.'],
+    [new InputError('scope', 'too_long', 'x'), '서비스 범위(scope)는 256자 이하여야 합니다.'],
+    [new InputError('scope', 'control_characters', 'x'), '서비스 범위(scope)에 줄바꿈이나 제어 문자를 넣을 수 없습니다.'],
     [new InputError('ageThreshold', 'out_of_range', 'x'), '나이는 1~150 사이의 정수로 입력하세요.'],
     [new InputError('targetRegion', 'unknown_region', 'x'), '지역은 목록에 있는 시·도 중 하나여야 합니다.'],
     [new RelayError(0, 'network', 'x'), '서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요.'],

@@ -12,7 +12,7 @@ export interface Choice {
 }
 
 export const CHOICES: Readonly<Record<CircuitId, Choice>> = {
-  mdl_kr_ownership: { title: '신분증 소유', question: '유효한 모바일 신분증을 가진 사람인가요?', fields: [] },
+  mdl_kr_ownership: { title: '본인 확인', question: '유효한 모바일 신분증을 가진 사람인가요?', fields: [] },
   mdl_kr_age: { title: '나이', question: '정한 나이 이상인가요? 생년월일은 알리지 않습니다.', fields: ['ageThreshold'] },
   mdl_kr_region: { title: '거주 지역', question: '이 시·도에 사나요? 주소는 알리지 않습니다.', fields: ['targetRegion'] },
 };

@@ -2,10 +2,12 @@
  * Every Korean string the app shows. Screens read from here and never write
  * user-facing text inline.
  */
+import {josa} from './josa';
+
 export const ko = {
   lock: {
     intro: '신분증 정보는 이 휴대폰 안에만 있습니다.\n열려면 본인 인증이 필요합니다.',
-    unlockBiometric: (kind: string) => `${kind}로 잠금 해제`,
+    unlockBiometric: (kind: string) => `${josa(kind, '로')} 잠금 해제`,
     unlockPasscode: '기기 암호로 잠금 해제',
     passcodeNote: '이 기기에는 생체 인증이 등록되어 있지 않아 기기 암호로 엽니다.',
     rule: '앱을 열 때마다, 그리고 1분 넘게 다른 앱에 있다가 돌아올 때마다 인증합니다.',
@@ -41,7 +43,7 @@ export const ko = {
     fieldAddress: '주소',
     fieldExpiry: '유효기간',
     remove: (card: string) => `이 휴대폰에서 ${card} 지우기`,
-    removeTitle: (card: string) => `${card}을(를) 지울까요?`,
+    removeTitle: (card: string) => `${josa(card, '을')} 지울까요?`,
     removeBody: '이 휴대폰에 저장한 이 신분증 정보만 지웁니다. 모바일 신분증 앱의 신분증은 그대로 있고, 다시 쓰려면 다시 가져오면 됩니다. 증명 기록은 남습니다.',
     removeConfirm: '지우기',
     removeCancel: '취소',
@@ -66,7 +68,7 @@ export const ko = {
     tryInApp: '앱에서 증명해 보기',
     starting: '요청 만드는 중…',
     ageOption: (n: number) => `${n}세 이상`,
-    inAppNote: '"앱에서 증명해 보기"는 데모 사이트처럼 중계 서버에 실제 요청을 만들고, 이 앱이 답한 증명을 SDK로 체인에서 검증해 보여 줍니다.',
+    inAppNote: '"앱에서 증명해 보기"는 데모 사이트처럼 실제 요청을 만들어 이 앱에서 증명하고, 그 증명을 체인에서 검증해 보여 줍니다.',
   },
   request: {
     badge: '증명 요청',
@@ -79,7 +81,7 @@ export const ko = {
       mdl_kr_region: (r: string) => `${r}에 사는지\n확인하려고 합니다`,
     },
     ageBasis: '나이는 출생 연도로 계산합니다(올해 − 출생 연도).',
-    useCard: (name: string) => `${name}으로 증명`,
+    useCard: (name: string) => `${josa(name, '로')} 증명`,
     change: '바꾸기',
     sends: '상대에게 가는 것',
     sendsFact: {
@@ -92,7 +94,7 @@ export const ko = {
     notSent: '가지 않는 것',
     notSentItems: ['이름', '생년월일', '주소', '신분증 번호', '사진'],
     message: '서비스가 남긴 말',
-    approve: (kind: string) => `${kind}로 확인하고 증명`,
+    approve: (kind: string) => `${josa(kind, '로')} 확인하고 증명`,
     approvePasscode: '기기 암호로 확인하고 증명',
     decline: '거절',
     noCardTitle: '이 증명에 쓸 신분증이 없습니다',
@@ -103,14 +105,14 @@ export const ko = {
   cannot: {
     ageBelow: (n: number) => `이 신분증의 출생 연도로는 ${n}세 이상이 아닙니다.`,
     noAddress: '이 신분증에는 주소가 없어 거주 시·도를 증명할 수 없습니다.',
-    regionDiffers: (r: string) => `이 신분증의 주소는 ${r}가 아닙니다.`,
+    regionDiffers: (r: string) => `이 신분증의 주소는 ${josa(r, '가')} 아닙니다.`,
   },
   proving: {
     title: '증명을 만들고 있습니다',
     body: '이 휴대폰 안에서만 계산합니다.\n신분증 정보는 밖으로 나가지 않습니다.',
     steps: {
       files: '증명 회로 준비',
-      inputs: (what: string) => `${what} 계산 준비`,
+      inputs: (what: string) => `${what} 증명에 쓸 값 준비`,
       prove: '영지식 증명 만들기',
       verify: '이 휴대폰에서 증명 확인 (오프체인 검증)',
       send: (who: string) => `${who}에 보내기`,
@@ -119,7 +121,7 @@ export const ko = {
   },
   done: {
     title: '증명을 보냈습니다',
-    body: (who: string, what: string) => `${who}는 ${what}만 받았습니다.`,
+    body: (who: string, what: string) => `${josa(who, '는')} ${what}만 받았습니다.`,
     to: '받은 곳',
     card: '신분증',
     what: '확인한 것',
@@ -135,7 +137,7 @@ export const ko = {
     chain: '체인',
     checking: '확인 중…',
     pass: '통과',
-    passIn: (ms: number) => `통과 · ${(ms / 1000).toFixed(1)}초`,
+    passIn: (ms: number) => `통과 · ${ms < 10 ? '0.01초 미만' : ms < 1000 ? `${(ms / 1000).toFixed(2)}초` : `${(ms / 1000).toFixed(1)}초`}`,
     fail: '실패',
     check: {
       status: '응답 상태',
@@ -154,9 +156,9 @@ export const ko = {
     title: '모바일 신분증을\nKProof에 가져옵니다',
     intro: '모바일 신분증 앱에서 신분증 정보를 한 번 받아, 이 휴대폰에만 암호화해 둡니다.',
     pick: '가져올 신분증을 고르세요',
-    representative: '지금은 모바일 신분증 앱이 대표 신분증으로 지정된 신분증을 보냅니다. 고른 신분증을 그 앱에서 대표 신분증으로 지정한 뒤 가져오세요.',
+    representative: '모바일 신분증 앱은 대표 신분증으로 지정된 신분증을 보냅니다. 고른 신분증을 그 앱에서 대표 신분증으로 지정한 뒤 가져오세요.',
     mismatch: (chose: string, received: string, detail: string) =>
-      `${chose}을(를) 골랐는데 모바일 신분증 앱이 ${received}을(를) 보냈습니다. 모바일 신분증 앱에서 대표 신분증을 ${chose}(으)로 바꾼 뒤 다시 가져오세요. (${detail})`,
+      `${josa(chose, '을')} 골랐는데 모바일 신분증 앱이 ${josa(received, '을')} 보냈습니다. 모바일 신분증 앱에서 대표 신분증을 ${josa(chose, '로')} 바꾼 뒤 다시 가져오세요. (${detail})`,
     sourceApp: '모바일 신분증 앱',
     already: '가져옴 · 다시 가져오면 바뀝니다',
     steps: [
@@ -223,7 +225,7 @@ export const ko = {
     E1001: {title: '요청을 읽을 수 없습니다', body: '증명 요청 링크가 올바르지 않습니다. 요청한 서비스에서 다시 시작하세요.'},
     E1002: {title: '지원하지 않는 증명입니다', body: 'KProof가 만들 수 없는 종류의 증명을 요청했습니다.'},
     E1003: {title: '요청 시간이 지났습니다', body: '요청한 서비스가 더 이상 기다리지 않습니다. 서비스에서 다시 요청하세요.'},
-    E1004: {title: '확인되지 않은 요청입니다', body: '이 요청은 KProof 중계 서버를 거치지 않았습니다. 답하지 않았습니다.'},
+    E1004: {title: '확인되지 않은 요청입니다', body: '이 요청은 KProof 중계 서버를 거치지 않아 답하지 않았습니다.'},
     E1005: {title: '요청 내용이 올바르지 않습니다', body: '요청에 들어 있는 값이 규칙에 맞지 않습니다.'},
     E1006: {title: '요청이 너무 큽니다', body: '증명 요청 링크가 허용된 크기를 넘었습니다.'},
     E1007: {title: '이미 답한 요청입니다', body: '이 요청에는 이미 답했습니다. 다시 하려면 서비스에서 새로 요청하세요.'},
