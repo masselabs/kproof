@@ -11,6 +11,21 @@ kproof-server의 relay에서 요청을 받아 딥링크를 QR 코드와 버튼�
 
 스테이징: https://stg-demo.koreanproof.com (서버 https://stg-api.koreanproof.com)
 
+## 탭
+
+탭은 주소의 `?tab=`으로 정합니다(`src/tabs.ts`). `?tab=` 없는 주소는 위의 증명 요청 데모,
+`?tab=cu`는 CU × KProof 결제 화면이고, 그 밖의 값은 그 값을 밝히는 '없는 탭' 화면을 보여 주며
+다른 탭으로 바꾸지 않습니다. 탭을 바꿔도 각 탭의 상태는 남고 주소가 따라 바뀌며, 뒤로/앞으로
+가기로 이전 탭에 돌아갑니다.
+
+CU 결제 화면(`src/cu/`, React, 처음 열 때 불러옴)은 19세 이상 상품 하나를 팝니다. 매번 새 scope
+(`kproof-demo:cu:checkout:<uuid>`)와 `ageThreshold: 19`로 `mdl_kr_age` 증명을 요청하고, QR과 앱
+링크를 보여 주며, 증명이 도착하고 2초 뒤에 수신 내역을 엽니다. 이어서 온체인 검증(dKRW 결제
+영수증까지, 화면 표시용이며 지갑·송금 없음)이나 브라우저 안의 오프체인 검증을 고릅니다. 두 방법
+모두 먼저 이 요청에 대한 응답이 아니면 검증기를 부르지 않고 거절합니다(SDK의 `checkAnswer`).
+한국어와 영어를 지원하며, 고른 언어는 로컬 저장소에 남습니다. 페이지의 나머지와 같은 relay와
+환경을 씁니다. zkproofport/proofport-app-demo(20d631c, dca9e53, hsy822)에서 옮겨 왔습니다.
+
 ## 빌드와 실행
 
 relay 주소와 환경 이름은 빌드할 때 정해지고 기본값이 없습니다. 없으면 빌드가 실패합니다.
@@ -42,8 +57,15 @@ relay를 상대로 `e2e/`를 실행합니다. 앱 쪽은 앱과 똑같이 relay�
 | 실제 relay: 회로마다 딥링크가 만든 요청을 그대로 담음; 앱의 generating→cancelled 응답이 페이지에 도착; 두 번째 응답은 거절; 악의적 오류 문자열은 데이터로 유지; 모르는 회로와 증명 없는 완료 응답은 거절 | `e2e/demo.e2e.test.ts` |
 | 실제 증명을 담은 완료 응답: relay → SDK → Base Sepolia 검증 컨트랙트가 true; 알 수 없는 견본 scope만 실패 | `e2e/demo.e2e.test.ts` |
 | 서빙된 페이지: 이 relay 전용으로 빌드됨, CSP가 연결 대상을 relay, 검증 RPC, 검증 키를 읽는 곳으로 제한, 브랜드 파일과 폰트 제공 | `e2e/demo.e2e.test.ts` |
+| 탭: `?tab=` 없는 주소, 탭 id별, 모르는 값(빈 값, 대소문자, `toString`, `__proto__`, 마크업, UTF-8, 10,000자)은 어떤 탭도 되지 않음; 없는 탭 문구는 글자로만; 클릭, 뒤로 가기, 보조키 클릭; CU는 한 번만 늦게 불러오고 실패하면 다시 시도; 탭 줄이 결제 화면 언어를 따름 | `src/__tests__/tabs.test.ts` |
+| CU 결제: 요청 모양과 새 scope, 페이지의 relay와 환경, 2초 대기, 취소·만료·화면 해제 뒤 남는 것 없음, 검증기 각각과 둘 다, scope·나이·연도·회로가 다르거나 형식이 틀린 응답은 검증기 호출 전에 거절, 검증기 실패와 시간 초과, 온체인 성공 뒤에만 결제 영수증, 한국어/영어 | `src/__tests__/cu.test.tsx` |
+| 실제 relay의 CU: 한국어·영어 요청 이름이 딥링크에 그대로 담김; 다른 요청용 실제 증명은 `checkAnswer`가 거절; 그림 파일과 늦게 불러오는 묶음이 제공되며 그 묶음에는 자체 relay 주소가 없음 | `e2e/demo.e2e.test.ts` |
 
 `public/brand`의 브랜드 파일과 `public/fonts`의 Pretendard 폰트는 KProof 브랜드 킷 v1.0
 (`masselabs/kproof-website` `brand/`, 커밋 `d6eb2c1`)에서 가져왔습니다. 이 저장소의 MIT
 라이선스는 이 파일들에 적용되지 않으며, 폰트는 SIL Open Font License(`public/fonts/OFL.txt`)를
 따릅니다.
+
+`public/cu/`는 CU 탭의 그림입니다. `cu-symbol.svg`는 CU 브랜드 색상 가이드의 벡터 도형(CU 상표는
+BGF리테일 소유), `budweiser.png`는 손대지 않은 버드와이저 제품 사진(권리는 AB InBev 소유)이며,
+둘 다 이 저장소의 라이선스가 적용되지 않습니다.

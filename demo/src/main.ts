@@ -8,6 +8,7 @@ import { ENVIRONMENTS, loadConfig } from './config';
 import { describeError } from './messages';
 import { createVerifier } from './verification';
 import { renderResult, statusText } from './view';
+import { startShell } from './shell';
 
 const DAPP_NAME = 'KProof 데모';
 
@@ -34,6 +35,14 @@ const regionSelect = form.elements.namedItem('targetRegion') as HTMLSelectElemen
 
 const { badge, verify: verifyEnvironment } = ENVIRONMENTS[config.env];
 el('env-badge').textContent = badge;
+
+startShell(document, window, {
+  cuEnv: { apiUrl: config.apiUrl, environment: verifyEnvironment },
+  loadCu: () => import('./cu/mount').then((m) => m.mountCu),
+  onCuError: (err) => {
+    el('panel-cu').textContent = `CU 데모를 불러오지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
+  },
+});
 
 for (const name of SI_DO) {
   const option = document.createElement('option');

@@ -3,5 +3,5 @@ import { sdkAliases } from './vite.config';
 
 export default defineConfig({
   resolve: { alias: sdkAliases },
-  test: { environment: 'jsdom', include: ['src/**/*.test.ts'] },
+  test: { environment: 'jsdom', include: ['src/**/*.test.{ts,tsx}'] },
 });

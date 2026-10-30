@@ -11,9 +11,10 @@
     <header class="top">
       <img class="wordmark" src="/brand/wordmark-color.svg" alt="KProof" width="132" height="24" />
       <span class="badge" id="env-badge"></span>
+      <nav class="tabs" id="tabs" role="tablist"></nav>
     </header>
 
-    <main class="wrap">
+    <main class="wrap" id="panel-proof" role="tabpanel" aria-labelledby="tab-proof" hidden>
       <section class="intro">
         <h1>모바일 신분증으로 사실 하나만 증명하기</h1>
         <p class="lead">
@@ -63,6 +64,15 @@
         </div>
         <div id="result" hidden></div>
         <button type="button" class="secondary" id="reset">새 요청</button>
+      </section>
+    </main>
+
+    <div id="panel-cu" role="tabpanel" aria-labelledby="tab-cu" hidden></div>
+
+    <main class="wrap" id="panel-unknown" hidden>
+      <section class="card unknown">
+        <p lang="ko" id="unknown-ko"></p>
+        <p lang="en" id="unknown-en"></p>
       </section>
     </main>
 

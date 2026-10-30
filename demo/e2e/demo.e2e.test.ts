@@ -12,7 +12,9 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { RelayClient, buildInputs, verifyAnswer, type CircuitId, type RequestStatus } from '@kproof/sdk';
+import { RelayClient, buildInputs, checkAnswer, verifyAnswer, type CircuitId, type RequestStatus } from '@kproof/sdk';
+import { CU_SCOPE_PREFIX } from '../src/cu/useCuProof';
+import { translateCu } from '../src/cu/i18n';
 
 function required(name: string): string {
   const value = process.env[name];
@@ -78,6 +80,33 @@ describe('served page', () => {
 
   it.each(['/brand/favicon.svg', '/fonts/PretendardVariable.woff2'])('serves %s', async (path) => {
     expect((await fetch(`${DEMO}${path}`)).status).toBe(200);
+  });
+
+  it('hides the form fields the chosen question does not use', async () => {
+    const sheet = html.match(/<link rel="stylesheet"[^>]*href="([^"]+)"/)?.[1];
+    if (!sheet) throw new Error('no stylesheet in the page');
+    const css = await (await fetch(new URL(sheet, `${DEMO}/`))).text();
+    expect(css).toMatch(/\.field\[hidden\]\{display:none\}/);
+  });
+
+  it.each(['/cu/cu-symbol.svg', '/cu/budweiser.png'])('serves the CU tab asset %s', async (path) => {
+    expect((await fetch(`${DEMO}${path}`)).status).toBe(200);
+  });
+
+  it('?tab=cu is the same page; the CU tab is a separate chunk with no relay of its own', async () => {
+    const res = await fetch(`${DEMO}/?tab=cu`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe(html);
+    const script = html.match(/<script type="module"[^>]*src="([^"]+)"/)?.[1];
+    if (!script) throw new Error('no module script in the page');
+    const bundle = await (await fetch(new URL(script, `${DEMO}/`))).text();
+    const chunk = bundle.match(/assets\/mount-[\w-]+\.js/)?.[0];
+    if (!chunk) throw new Error('the page bundle does not load the CU chunk');
+    const cu = await fetch(`${DEMO}/${chunk}`);
+    expect(cu.status).toBe(200);
+    const code = await cu.text();
+    expect(code).toContain(CU_SCOPE_PREFIX);
+    for (const relay of [API, 'https://stg-api.koreanproof.com', 'https://api.koreanproof.com']) expect(code).not.toContain(relay);
   });
 
   it('answers an unknown path with the page, not a server error', async () => {
@@ -146,6 +175,25 @@ describe('request -> app answer -> page update, on the real relay', () => {
     expect(outcome.valid).toBe(false);
     expect(outcome.checks.filter((c) => !c.ok).map((c) => c.name)).toEqual(['scope']);
     expect(outcome.checks.find((c) => c.name === 'on_chain')).toMatchObject({ ok: true });
+
+    // The CU checkout refuses the same real answer before any verifier runs: it is not for its request.
+    const cu = buildInputs('mdl_kr_age', { scope: `${CU_SCOPE_PREFIX}${crypto.randomUUID()}`, ageThreshold: 19 });
+    const refused = checkAnswer({ circuitId: 'mdl_kr_age', inputs: cu }, answer, { environment: 'staging' });
+    expect(refused.valid).toBe(false);
+    expect(refused.checks.filter((c) => !c.ok).map((c) => c.name)).toEqual(['scope', 'age_threshold']);
+    expect(refused.checks.some((c) => c.name === 'on_chain')).toBe(false);
+  });
+
+  // The relay takes 10 requests a minute from one address; this file makes 9.
+  it('CU checkout: the relay takes its request, and the deep link carries it exactly', async () => {
+    // English, with '&': Korean names are already covered by the requests above.
+    const inputs = buildInputs('mdl_kr_age', { scope: `${CU_SCOPE_PREFIX}${crypto.randomUUID()}`, ageThreshold: 19 });
+    const dappName = translateCu('en', 'CU 성인인증 및 dKRW 결제');
+    expect(dappName).toBe('CU age verification & dKRW payment');
+    const created = await client.createRequest('mdl_kr_age', inputs, dappName);
+    expect(decodeDeepLink(created.deepLink)).toMatchObject({ requestId: created.requestId, circuitId: 'mdl_kr_age', inputs, dappName });
+    expect((await appAnswers(created.requestId, { status: 'cancelled', circuit: 'mdl_kr_age' })).status).toBe(200);
+    expect((await client.getStatus(created.requestId)).status).toBe('cancelled');
   });
 
   it('the relay refuses a circuit the demo does not offer', async () => {

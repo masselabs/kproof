@@ -33,6 +33,25 @@ body {
   border-radius: var(--kp-radius-pill);
   padding: 2px 10px;
 }
+.tabs { display: flex; gap: var(--kp-space-1); margin-left: auto; flex-wrap: wrap; }
+.tab {
+  font-size: var(--type-label);
+  font-weight: 600;
+  color: var(--kp-color-muted);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: var(--kp-radius-pill);
+  padding: 6px 14px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--kp-color-blue); }
+.tab[aria-selected="true"] { color: var(--kp-color-blue); border-color: var(--kp-color-blue); background: var(--kp-color-blue-soft); }
+.tab:focus-visible { outline: 2px solid var(--kp-color-focus); outline-offset: 2px; }
+.unknown p { margin: 0 0 var(--kp-space-2); font-weight: 600; }
+.unknown p[lang="en"] { color: var(--kp-color-muted); font-weight: 400; margin: 0; }
 
 .wrap {
   max-width: 760px;
@@ -68,9 +87,11 @@ h2 { font-size: 22px; margin: 0 0 var(--kp-space-3); }
 .choice span { color: var(--kp-color-muted); font-size: 15px; }
 
 .field { display: grid; gap: var(--kp-space-1); margin-bottom: var(--kp-space-3); }
+.field[hidden] { display: none; }
 .field span { font-weight: 600; }
 .field small { color: var(--kp-color-muted); font-size: 13px; }
-input, select {
+/* Element styles belong to the KProof panels (.wrap); the CU checkout tab styles its own. */
+:where(.wrap) input, :where(.wrap) select {
   font: inherit;
   padding: 10px 12px;
   border: 1px solid var(--kp-color-line);
@@ -79,12 +100,12 @@ input, select {
   color: var(--kp-color-ink);
   width: 100%;
 }
-input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+:where(.wrap) input:focus-visible, :where(.wrap) select:focus-visible, :where(.wrap) button:focus-visible, :where(.wrap) a:focus-visible {
   outline: 2px solid var(--kp-color-focus);
   outline-offset: 2px;
 }
 
-button, .button {
+:where(.wrap) button, :where(.wrap) .button {
   font: inherit;
   font-weight: 700;
   display: inline-block;
@@ -97,14 +118,14 @@ button, .button {
   text-decoration: none;
   transition: background var(--kp-motion-quick);
 }
-button:hover, .button:hover { background: var(--kp-color-blue-hover); }
-button:disabled { opacity: .6; cursor: progress; }
-button.secondary, .button.secondary {
+:where(.wrap) button:hover, :where(.wrap) .button:hover { background: var(--kp-color-blue-hover); }
+:where(.wrap) button:disabled { opacity: .6; cursor: progress; }
+:where(.wrap) button.secondary, :where(.wrap) .button.secondary {
   background: transparent;
   color: var(--kp-color-blue);
   border: 1px solid var(--kp-color-blue);
 }
-button.secondary:hover, .button.secondary:hover { background: var(--kp-color-blue-soft); }
+:where(.wrap) button.secondary:hover, :where(.wrap) .button.secondary:hover { background: var(--kp-color-blue-soft); }
 
 .form-error { color: var(--kp-color-red); font-weight: 600; margin: 0 0 var(--kp-space-3); white-space: pre-wrap; }
 
@@ -132,6 +153,8 @@ button.secondary:hover, .button.secondary:hover { background: var(--kp-color-blu
 .foot { max-width: 760px; margin: 0 auto; padding: var(--kp-space-4) var(--kp-space-3) var(--kp-space-6); color: var(--kp-color-muted); font-size: 13px; }
 
 @media (max-width: 560px) {
+  .top { flex-wrap: wrap; }
+  .tabs { margin-left: 0; width: 100%; }
   .request-body { grid-template-columns: 1fr; }
   #qr { margin: 0 auto; }
 }
