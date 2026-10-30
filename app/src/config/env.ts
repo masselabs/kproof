@@ -26,6 +26,11 @@ export interface EnvRow {
   circuits: CircuitsSource;
   /** Mobile ID relay server the import talks to. */
   idImportBaseUrl: string;
+  /**
+   * The demo site for this environment's relay, linked from the home screen;
+   * null when the environment has none, and then no link is shown.
+   */
+  demoUrl: string | null;
 }
 
 export const RELAY_CALLBACK_PATH = '/api/v1/proof/callback';
@@ -40,11 +45,14 @@ export const ENV = {
     ],
     circuits: CIRCUITS_SOURCE,
     idImportBaseUrl: 'https://cx.raonsecure.co.kr:18543',
+    // The local relay has no demo site of its own.
+    demoUrl: null,
   },
   staging: {
     relays: [{protocol: 'https:', host: 'stg-api.koreanproof.com', port: ''}],
     circuits: CIRCUITS_SOURCE,
     idImportBaseUrl: 'https://cx.raonsecure.co.kr:18543',
+    demoUrl: 'https://stg-demo.koreanproof.com',
   },
 } as const satisfies Record<string, EnvRow>;
 

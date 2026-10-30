@@ -187,6 +187,7 @@ Proving and answering (`src/services/answerFlow.ts`, `src/services/relayAnswer.t
 | In-app proof with the relay down | the relay error is shown (E3001 / E3002 / E3003) | `inAppProof.test.ts` "a relay that is down surfaces its error"; the code mapping is on the screen and was checked on the device only |
 | After answering an in-app request, the done screen reads the answer back from the relay and runs the SDK's `verifyAnswer` (including `eth_call` on the verifier) | each check shown; a non-completed answer or a wrong scope is not valid | `inAppProof.test.ts` "reads the answer back ...", "a completed answer with the wrong scope is not valid"; a real proof end to end only on the device |
 | Delete one card from the Home screen | confirmation sheet; only that card leaves the vault; history stays | `vault.test.ts` "... deleting a card"; the screen was checked on the device only |
+| Demo site link (Home, "What this ID can prove" open → Demo screen) | shown only when the build environment has a `demoUrl` (staging: stg-demo.koreanproof.com; development: none); opens exactly that address in the browser; a failed open shows E3004 | `DemoSite.test.ts`, `config.test.ts` "the demo site ..." |
 | Input layout per circuit (field order and count, nullifier = keccak(keccak(ci) ‖ keccak(scope))) | matches the Noir `main()` signatures | `mdlInputs.test.ts`; also checked once by `nargo execute` on the pinned circuits (witness solves for all three; age 20 for a 2007 birth year fails `assert_age`) |
 
 ### End-to-end (needs a person and a physical phone)

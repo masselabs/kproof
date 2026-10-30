@@ -27,6 +27,15 @@ describe('environment table', () => {
     }
   });
 
+  test('the demo site: staging links its own, development has none, and every link is an https origin', () => {
+    expect(getEnv('staging').demoUrl).toBe('https://stg-demo.koreanproof.com');
+    expect(getEnv('development').demoUrl).toBeNull();
+    for (const row of Object.values(ENV)) {
+      if (row.demoUrl === null) continue;
+      expect(row.demoUrl).toMatch(/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+$/);
+    }
+  });
+
   test('circuit ids are the canonical three', () => {
     expect(CIRCUIT_IDS).toEqual(['mdl_kr_ownership', 'mdl_kr_age', 'mdl_kr_region']);
     for (const bad of ['toString', '__proto__', 'mdl-kr-age']) expect(isCircuitId(bad)).toBe(false);

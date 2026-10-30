@@ -49,7 +49,17 @@
     "removeTitle": "Remove the {{card}}?",
     "removeBody": "Only the copy saved on this phone is removed. Your ID in the mobile ID app stays as it is, and you can bring it in again whenever you need it. Your proof history is kept.",
     "removeConfirm": "Remove",
-    "removeCancel": "Cancel"
+    "removeCancel": "Cancel",
+    "demo": "Demo site"
+  },
+  "demo": {
+    "title": "Demo site",
+    "body": "A web page where you can try KProof proofs yourself.",
+    "tryTitle": "What you can try",
+    "tryAge": "Age check",
+    "tryIdentity": "Identity check",
+    "tryRegion": "Region of residence check",
+    "open": "Open the demo site"
   },
   "facts": {
     "mdl_kr_ownership": "Identity",
@@ -284,6 +294,7 @@
     "E3001": {"title": "Can't reach the server", "body": "Check your connection. Your answer did not reach the service."},
     "E3002": {"title": "The server didn't accept the answer", "body": "The relay server refused this answer."},
     "E3003": {"title": "Server problem", "body": "The relay server returned an error. Your answer may not have reached the service."},
+    "E3004": {"title": "Couldn't open the page", "body": "The browser could not open this page. Try again in a moment."},
     "E4001": {"title": "Identity not confirmed", "body": "The biometric or passcode check was canceled or failed."},
     "E4002": {"title": "Device lock required", "body": "KProof protects your ID with biometrics or your device passcode. Turn on Face ID, fingerprint or a passcode in your phone's settings, then open the app again."},
     "E4003": {"title": "Can't read your saved ID", "body": "Your biometrics changed or the saved data is damaged. Bring in your ID again."},

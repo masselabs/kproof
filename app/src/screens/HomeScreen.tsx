@@ -8,6 +8,7 @@ import {useTranslation} from 'react-i18next';
 import i18n from '../i18n';
 import {CARD_ORDER, type CardTypeKey} from '../config/cardTypes';
 import {CIRCUIT_IDS} from '../config/circuits';
+import {currentEnv} from '../config/buildEnv';
 import type {StoredCard} from '../services/importCard';
 import {session, useSession} from '../state/session';
 import {toAppError} from '../errors';
@@ -44,6 +45,7 @@ export function HomeScreen() {
   const [hidden, setHidden] = useState(true);
   const [factsOpen, setFactsOpen] = useState(false);
   const [removing, setRemoving] = useState<CardTypeKey | null>(null);
+  const demoUrl = currentEnv().demoUrl;
 
   // A second tap on confirm, before the sheet has closed, must not remove twice.
   const removingNow = useRef(false);
@@ -117,6 +119,11 @@ export function HomeScreen() {
                 {facts(frontCard).map((f) => (
                   <Chip key={f} label={f} tone="blue" />
                 ))}
+              </View>
+            ) : null}
+            {factsOpen && demoUrl !== null ? (
+              <View style={styles.demo}>
+                <InlineButton label={t('home.demo')} onPress={() => nav.navigate('Demo')} testID="open-demo" />
               </View>
             ) : null}
           </Panel>
@@ -216,6 +223,7 @@ const styles = StyleSheet.create({
   factsHead: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, gap: 8},
   chevron: {width: 24, height: 24, alignItems: 'center', justifyContent: 'center'},
   chevronOpen: {transform: [{rotate: '180deg'}]},
+  demo: {paddingHorizontal: 16, paddingBottom: 16},
   chips: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 16},
   tab: {
     height: 52,

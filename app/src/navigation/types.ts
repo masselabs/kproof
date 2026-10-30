@@ -14,6 +14,7 @@ export type RootStackParamList = {
   Tabs: NavigatorScreenParams<TabParamList> | undefined;
   AddId: undefined;
   SettingsLanguage: undefined;
+  Demo: undefined;
   Scan: undefined;
   Request: undefined;
   Proving: {card: CardTypeKey};

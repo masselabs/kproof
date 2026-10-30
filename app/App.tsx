@@ -24,6 +24,7 @@ import {ProvingScreen} from './src/screens/ProvingScreen';
 import {DoneScreen} from './src/screens/DoneScreen';
 import {ScanScreen} from './src/screens/ScanScreen';
 import {SettingsLanguageScreen} from './src/screens/SettingsLanguageScreen';
+import {DemoScreen} from './src/screens/DemoScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -146,6 +147,7 @@ export default function App() {
             <Stack.Screen name="Tabs" component={Tabs} />
             <Stack.Screen name="AddId" component={AddIdScreen} />
             <Stack.Screen name="SettingsLanguage" component={SettingsLanguageScreen} />
+            <Stack.Screen name="Demo" component={DemoScreen} />
             <Stack.Screen name="Scan" component={ScanScreen} options={{animation: 'slide_from_bottom', gestureEnabled: false}} />
             <Stack.Screen name="Request" component={RequestScreen} options={{gestureEnabled: false}} />
             <Stack.Screen name="Proving" component={ProvingScreen} options={{gestureEnabled: false}} />
