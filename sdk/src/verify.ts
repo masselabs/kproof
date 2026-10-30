@@ -43,10 +43,13 @@ export interface VerifyOutcome {
   network: { chainId: number; verifier: string };
 }
 
-export interface VerifyOptions {
+export interface CheckOptions {
   environment: Environment;
   /** Clock for the current-year check; defaults to the real clock. */
   now?: Date;
+}
+
+export interface VerifyOptions extends CheckOptions {
   fetchImpl?: typeof fetch;
 }
 
@@ -185,23 +188,35 @@ function circuitChecks(checks: Check[], id: CircuitId, layout: CircuitLayout, wo
   }
 }
 
-export async function verifyAnswer(request: VerifyRequest, answer: VerifyAnswer, options: VerifyOptions): Promise<VerifyOutcome> {
-  const network = lookupNetwork(options.environment);
-  const { id, layout } = lookupCircuit(request.circuitId);
-  const verifier = network.verifiers[id];
-  const checks: Check[] = [];
-  const outcome = (nullifier?: string): VerifyOutcome => ({
+interface Checked {
+  checks: Check[];
+  nullifier?: string;
+  network: VerifyOutcome['network'];
+  /** Set only when the answer got far enough for its proof to be checked: shape and format passed. */
+  proof?: { hex: string; words: string[] };
+}
+
+function outcomeOf({ checks, nullifier, network }: Checked): VerifyOutcome {
+  return {
     valid: checks.length > 0 && checks.every((c) => c.ok),
     checks,
     ...(nullifier !== undefined && { nullifier }),
     issuerVerified: false,
-    network: { chainId: network.chainId, verifier },
-  });
+    network,
+  };
+}
+
+function runChecks(request: VerifyRequest, answer: VerifyAnswer, options: CheckOptions): Checked {
+  const network = lookupNetwork(options.environment);
+  const { id, layout } = lookupCircuit(request.circuitId);
+  const verifier = network.verifiers[id];
+  const checks: Check[] = [];
+  const net = { chainId: network.chainId, verifier };
 
   if (!check(checks, 'status', () => {
     if (answer.status !== 'completed') throw new Error(`the answer is '${answer.status}', not 'completed'`);
     return 'completed';
-  })) return outcome();
+  })) return { checks, network: net };
   check(checks, 'circuit', () => {
     if (answer.circuit !== id) throw new Error(`the answer is for '${String(answer.circuit)}', the request asked '${id}'`);
     return id;
@@ -211,13 +226,13 @@ export async function verifyAnswer(request: VerifyRequest, answer: VerifyAnswer,
     if (!Array.isArray(words)) throw new Error('the answer has no public inputs');
     if (words.length !== layout.publicInputs) throw new Error(`${words.length} public inputs, ${id} has ${layout.publicInputs}`);
     return `${words.length}`;
-  }) || !words) return outcome();
+  }) || !words) return { checks, network: net };
   if (!check(checks, 'public_input_format', () => {
     const bad = words.findIndex((w) => typeof w !== 'string' || !WORD_RE.test(w));
     if (bad !== -1) throw new Error(`public input ${bad} is not a 32-byte hex word`);
     if (typeof answer.proof !== 'string' || !HEX_RE.test(answer.proof) || answer.proof.length <= 2) throw new Error('the proof is not 0x-prefixed hex');
     return 'ok';
-  })) return outcome();
+  })) return { checks, network: net };
 
   let nullifier: string | undefined;
   try {
@@ -226,12 +241,32 @@ export async function verifyAnswer(request: VerifyRequest, answer: VerifyAnswer,
     nullifier = undefined;
   }
   circuitChecks(checks, id, layout, words, request.inputs, options.now ?? new Date());
+  return { checks, nullifier, network: net, proof: { hex: answer.proof!, words } };
+}
 
+/**
+ * Every check `verifyAnswer` makes EXCEPT the proof itself: the answer's
+ * status, circuit, public-input shape, and that the public inputs say what the
+ * request asked (scope, age or region, year). No network call. `valid` here
+ * means the answer is for this request; it says nothing about the proof.
+ *
+ * For a caller that checks the proof another way (off-chain, with
+ * `@kproof/sdk/offchain`) and wants to refuse an answer for another request
+ * before spending a verifier call on it.
+ */
+export function checkAnswer(request: VerifyRequest, answer: VerifyAnswer, options: CheckOptions): VerifyOutcome {
+  return outcomeOf(runChecks(request, answer, options));
+}
+
+export async function verifyAnswer(request: VerifyRequest, answer: VerifyAnswer, options: VerifyOptions): Promise<VerifyOutcome> {
+  const checked = runChecks(request, answer, options);
+  const { proof } = checked;
+  if (!proof) return outcomeOf(checked);
   try {
-    const result = await verifyOnChain(network.rpcUrl, verifier, answer.proof!, words, options.fetchImpl);
-    checks.push({ name: 'on_chain', ok: result.ok, detail: result.detail });
+    const result = await verifyOnChain(lookupNetwork(options.environment).rpcUrl, checked.network.verifier, proof.hex, proof.words, options.fetchImpl);
+    checked.checks.push({ name: 'on_chain', ok: result.ok, detail: result.detail });
   } catch (err) {
-    checks.push({ name: 'on_chain', ok: false, detail: `could not ask the verifier: ${err instanceof Error ? err.message : String(err)}` });
+    checked.checks.push({ name: 'on_chain', ok: false, detail: `could not ask the verifier: ${err instanceof Error ? err.message : String(err)}` });
   }
-  return outcome(nullifier);
+  return outcomeOf(checked);
 }

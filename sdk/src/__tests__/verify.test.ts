@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CIRCUITS, NETWORKS, type CircuitId } from '../circuits';
-import { encodeVerifyCall, koreanYear, readBytes, regionHash, scopeHash, verifyAnswer, verifyOnChain } from '../verify';
+import { checkAnswer, encodeVerifyCall, koreanYear, readBytes, regionHash, scopeHash, verifyAnswer, verifyOnChain } from '../verify';
 
 const NOW = new Date('2026-10-27T12:00:00Z');
 const word = (n: number | bigint) => `0x${BigInt(n).toString(16).padStart(64, '0')}`;
@@ -217,5 +217,47 @@ describe('encoding helpers', () => {
       expect((await verifyOnChain('https://rpc', '0x1', PROOF, [], rpc(result))).ok).toBe(false);
     }
     expect((await verifyOnChain('https://rpc', '0x1', PROOF, [], rpc(TRUE))).ok).toBe(true);
+  });
+});
+
+describe('checkAnswer: every check but the proof, with no network', () => {
+  it('passes a matching answer with the same checks as verifyAnswer, minus on_chain', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const out = checkAnswer(ageRequest, ageAnswer(), { environment: 'staging', now: NOW });
+    expect(out.valid).toBe(true);
+    expect(out.checks.map((c) => c.name)).toEqual(['status', 'circuit', 'public_input_count', 'public_input_format', 'scope', 'age_threshold', 'current_year']);
+    expect(out.network).toEqual({ chainId: NETWORKS.staging.chainId, verifier: NETWORKS.staging.verifiers.mdl_kr_age });
+    expect(out.nullifier).toMatch(/^0x0102/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  it.each([
+    ['scope', ageAnswer({ scope: 'other' })],
+    ['age_threshold', ageAnswer({ age: 18 })],
+    ['current_year', ageAnswer({ year: 2024 })],
+    ['circuit', { ...ageAnswer(), circuit: 'mdl_kr_ownership' }],
+  ] as const)('refuses an answer whose %s differs from the request', (name, answer) => {
+    const out = checkAnswer(ageRequest, answer, { environment: 'staging', now: NOW });
+    expect(out.valid).toBe(false);
+    expect(failed(out)).toEqual([name]);
+  });
+
+  it('stops at a malformed answer exactly where verifyAnswer does', async () => {
+    const malformed = { ...ageAnswer(), publicInputs: ['0x01'] };
+    const out = checkAnswer(ageRequest, malformed, { environment: 'staging', now: NOW });
+    expect(out.valid).toBe(false);
+    const fetchImpl = rpc(TRUE);
+    expect((await verifyAnswer(ageRequest, malformed, { environment: 'staging', now: NOW, fetchImpl })).checks).toEqual(out.checks);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('a pending answer fails on status alone', () => {
+    expect(checkAnswer(ageRequest, { status: 'pending' }, { environment: 'staging' }).checks.map((c) => c.name)).toEqual(['status']);
+  });
+
+  it('throws on an unknown environment or circuit, by name', () => {
+    expect(() => checkAnswer(ageRequest, ageAnswer(), { environment: 'production' as never })).toThrow(/Unknown KProof environment 'production'/);
+    expect(() => checkAnswer({ circuitId: 'coinbase_attestation' as never, inputs: {} }, ageAnswer(), { environment: 'staging' })).toThrow(/coinbase_attestation/);
   });
 });

@@ -37,6 +37,11 @@ Every check is returned, passed or not; `valid` is true only when all pass.
 
 Unknown circuit ids and environments throw by name.
 
+`checkAnswer(request, answer, { environment })` makes every check above except
+`on_chain`, synchronously and with no network call: whether the answer is for
+this request at all. Use it to refuse an answer for another request before
+checking its proof another way, for example off-chain.
+
 ## Off-chain verification
 
 ```ts

@@ -37,6 +37,11 @@ relay.watch(requestId, async (status) => {
 
 모르는 회로 id와 환경 이름은 이름을 밝혀 오류를 냅니다.
 
+`checkAnswer(request, answer, { environment })`는 위 검사 중 `on_chain`만 빼고
+모두 하며, 동기로 돌고 네트워크를 쓰지 않습니다. 응답이 이 요청에 대한 것인지만
+확인합니다. 증명을 다른 방법(예: 오프체인)으로 검증하기 전에, 다른 요청의 응답을
+먼저 거절할 때 씁니다.
+
 ## 오프체인 검증
 
 ```ts
